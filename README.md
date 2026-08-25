@@ -1,4 +1,4 @@
-# Loops Within Loop — Brain · Spine · Ledger
+# AISkills — Brain · Spine · Ledger
 
 A portable, host-agnostic discipline layer that turns any capable, tool-using coding agent
 (Claude Code, Codex, Cursor, Windsurf, or a custom agent you built yourself) into a
@@ -17,7 +17,7 @@ perfectly capable of writing a correct fix still ships a bug because it never wr
 that would have caught it, or drifts off the actual ask three turns into a conversation, or
 declares "done" because the code *looks* right rather than because a real gate passed. This
 package doesn't make the underlying model smarter. It gives it a grammar for looping —
-orient → decide → act → observe, nested loops within loops, each with a named stop condition —
+orient → decide → act → observe, loops nested inside loops, each with a named stop condition —
 and a hard gate that won't let it call anything done without a named failing test to point at.
 The loop mechanics live in one file; every domain skill just plugs into them.
 
