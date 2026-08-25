@@ -1,0 +1,15 @@
+# Runtime learning / ledger state — per-user, never committed (see skills/session-control,
+# skills/continuous-learning, skills/agentic-loops).
+.agentic-loops/
+
+# OS / editor cruft
+.DS_Store
+*.swp
+
+# Python
+*.pyc
+__pycache__/
+
+# Local scratch
+/tmp/
+.claude/
