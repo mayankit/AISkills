@@ -1,4 +1,4 @@
-# aiSkills — Brain · Spine · Ledger
+# Loops Within Loop — Brain · Spine · Ledger
 
 A portable, host-agnostic discipline layer that turns any capable, tool-using coding agent
 (Claude Code, Codex, Cursor, Windsurf, or a custom agent you built yourself) into a
