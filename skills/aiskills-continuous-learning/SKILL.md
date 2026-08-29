@@ -14,9 +14,10 @@ restated here): **Capture: post-DONE learning extraction**.
 ## Overview
 
 A system for extracting reusable lessons from development sessions so the agent improves over
-time. Learning lives in two separate planes: a runtime state that changes per-user, and never
-in a repo, where the shared skills package changes only through
-a reviewed PR. Keeping the planes separate is what makes self-correction safe.
+time. Learning lives in two separate planes: a **local overlay** — gitignored notes that change
+per-user at runtime and are never committed — and the **shared skills package**, which changes
+only through a reviewed PR (the promotion gate below). Keeping the planes separate is what makes
+self-correction safe.
 
 ## Usage
 

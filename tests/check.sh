@@ -36,22 +36,29 @@ for dir in skills/*/; do
   name="$(basename "$dir")"
   f="${dir}SKILL.md"
   if [ ! -f "$f" ]; then say_fail "skill $name: no SKILL.md"; continue; fi
-  if ! head -1 "$f" | grep -q '^---$'; then say_fail "skill $name: SKILL.md has no frontmatter"; continue; fi
+  if [ "$(head -1 "$f")" != "---" ]; then say_fail "skill $name: SKILL.md has no opening frontmatter"; continue; fi
+  if [ -z "$(awk 'NR>1{ if($0=="---"){print NR; exit} }' "$f")" ]; then say_fail "skill $name: frontmatter block is never closed"; continue; fi
   if ! grep -q "^name: $name$" "$f"; then say_fail "skill $name: frontmatter name: doesn't match directory"; else say_pass "skill $name: name: matches directory"; fi
   if ! grep -q '^description:' "$f"; then say_fail "skill $name: frontmatter has no description:"; else say_pass "skill $name: has description:"; fi
 done
 
 # ---------------------------------------------------------------------------
-# 3. Every skills/<name>/ has a routing row in aiskills-skill-routing
+# 3. Every skill is reachable — named in BOTH the intent->skill table AND the
+#    master map of aiskills-skill-routing (a mention in prose is not enough).
 # ---------------------------------------------------------------------------
 routing="skills/aiskills-skill-routing/SKILL.md"
+intent_tbl="$(awk '/^## The routing table/{f=1;next} f&&/^## /{f=0} f' "$routing")"
+master_tbl="$(awk '/^## Master map/{f=1;next} f&&/^## /{f=0} f' "$routing")"
 for dir in skills/*/; do
   name="$(basename "$dir")"
   [ "$name" = "aiskills-skill-routing" ] && continue
-  if grep -q "\`$name\`" "$routing"; then
-    say_pass "routing: $name referenced in aiskills-skill-routing/SKILL.md"
+  in_intent=0; in_master=0
+  printf '%s\n' "$intent_tbl" | grep -q "\`$name\`" && in_intent=1
+  printf '%s\n' "$master_tbl" | grep -q "\`$name\`" && in_master=1
+  if [ "$in_intent" -eq 1 ] && [ "$in_master" -eq 1 ]; then
+    say_pass "routing: $name is in both the intent table and the master map"
   else
-    say_fail "routing: $name is orphaned — no reference in aiskills-skill-routing/SKILL.md"
+    say_fail "routing: $name is orphaned (intent table: $in_intent, master map: $in_master)"
   fi
 done
 
@@ -69,8 +76,8 @@ done
 # ---------------------------------------------------------------------------
 # 5. Portability — no hardcoded absolute paths outside $HOME-relative examples
 # ---------------------------------------------------------------------------
-if grep -rlE '/(Users|home)/[a-zA-Z0-9_-]+/' --include='*.md' --include='*.sh' . 2>/dev/null | grep -v '^\./tests/check.sh$' | grep -q .; then
-  say_fail "portability: found a hardcoded user-specific absolute path"
+if grep -rnE '/(Users|home)/[a-zA-Z0-9_-]+/' --include='*.md' --include='*.sh' . 2>/dev/null | grep -v 'portability-ok' | grep -q .; then
+  say_fail "portability: found a hardcoded user-specific absolute path (mark an intentional one with '# portability-ok')"
 else
   say_pass "portability: no hardcoded user-specific absolute paths"
 fi
@@ -98,7 +105,7 @@ for s in skills/aiskills-agentic-loops/scripts/loop-status.sh skills/aiskills-ag
   if bash -n "$s" 2>/dev/null; then say_pass "behavioral: $s passes bash -n"; else say_fail "behavioral: $s has a syntax error"; fi
 done
 
-if [ -x skills/aiskills-agentic-loops/scripts/fanout-check.sh ] || [ -f skills/aiskills-agentic-loops/scripts/fanout-check.sh ]; then
+if [ -f skills/aiskills-agentic-loops/scripts/fanout-check.sh ]; then
   tmp_ws="$(mktemp -d)"
   out="$(AGENT_WS_ROOT="$tmp_ws" bash skills/aiskills-agentic-loops/scripts/fanout-check.sh 3 2>&1)"
   if echo "$out" | grep -q "FAN-OUT REQUIRED"; then
@@ -121,22 +128,50 @@ if [ -x skills/aiskills-agentic-loops/scripts/fanout-check.sh ] || [ -f skills/a
 fi
 
 if [ -f skills/aiskills-agentic-loops/scripts/loop-status.sh ]; then
+  LS=skills/aiskills-agentic-loops/scripts/loop-status.sh
   tmp_ws="$(mktemp -d)"
-  out="$(AGENT_WS_ROOT="$tmp_ws" bash skills/aiskills-agentic-loops/scripts/loop-status.sh L1 "test line" 2>&1)"
-  if echo "$out" | grep -q "L1"; then
-    say_pass "behavioral: loop-status.sh L1 emits an L1 line"
-  else
-    say_fail "behavioral: loop-status.sh L1 did not emit an L1 line (got: $out)"
-  fi
-  if AGENT_WS_ROOT="$tmp_ws" bash skills/aiskills-agentic-loops/scripts/loop-status.sh check >/dev/null 2>&1; then
-    :
-  fi
+
+  out="$(AGENT_WS_ROOT="$tmp_ws" bash "$LS" L1 "Context · open · iter 1 · ORIENT · stop:can-name-files" 2>&1)"
+  case "$out" in
+    "◆ L1 "*) say_pass "behavioral: loop-status.sh L1 emits a '◆ L1 …' line" ;;
+    *) say_fail "behavioral: loop-status.sh L1 line malformed (got: $out)" ;;
+  esac
+
+  # a sibling-suffix level is tolerated, not rejected
+  AGENT_WS_ROOT="$tmp_ws" bash "$LS" L2a "Build [x] · open · stop:tests-green" >/dev/null 2>&1
   rc=$?
-  if [ "$rc" -eq 1 ] || [ "$rc" -eq 0 ]; then
-    say_pass "behavioral: loop-status.sh check runs against a fresh ledger without crashing"
+  [ "$rc" -eq 0 ] && say_pass "behavioral: loop-status.sh tolerates a trailing-letter level (L2a)" \
+                  || say_fail "behavioral: loop-status.sh rejected L2a (rc=$rc)"
+
+  # STOP must name one of the five conditions
+  AGENT_WS_ROOT="$tmp_ws" bash "$LS" STOP "DONE — all green" >/dev/null 2>&1
+  rc=$?; [ "$rc" -eq 0 ] && say_pass "behavioral: loop-status.sh STOP DONE accepted" \
+                         || say_fail "behavioral: loop-status.sh STOP DONE rejected (rc=$rc)"
+  AGENT_WS_ROOT="$tmp_ws" bash "$LS" STOP "BANANA not a condition" >/dev/null 2>&1
+  rc=$?; [ "$rc" -eq 2 ] && say_pass "behavioral: loop-status.sh STOP rejects an unknown condition (exit 2)" \
+                         || say_fail "behavioral: loop-status.sh STOP accepted a bogus condition (rc=$rc)"
+
+  # a valid PLAN block is accepted; a tab-indented one is rejected
+  printf '%s\n' 'TASK demo                         stop:done' \
+                '  ◇ PLAN v1: 1 piece' \
+                '  ● L0 Convention                   stop:model-stable  ← here' \
+    | AGENT_WS_ROOT="$tmp_ws" bash "$LS" PLAN '<-' >/dev/null 2>&1
+  rc=$?; [ "$rc" -eq 0 ] && say_pass "behavioral: loop-status.sh accepts a well-formed PLAN block" \
+                         || say_fail "behavioral: loop-status.sh rejected a well-formed PLAN block (rc=$rc)"
+  printf 'TASK demo stop:done\n\t● L0 Convention stop:model-stable\n' \
+    | AGENT_WS_ROOT="$tmp_ws" bash "$LS" PLAN '<-' >/dev/null 2>&1
+  rc=$?; [ "$rc" -eq 2 ] && say_pass "behavioral: loop-status.sh rejects a tab-indented PLAN (exit 2)" \
+                         || say_fail "behavioral: loop-status.sh accepted a tab-indented PLAN (rc=$rc)"
+
+  # check: real exit code captured (0 healthy / 1 stale-or-incomplete), never a crash
+  AGENT_WS_ROOT="$tmp_ws" bash "$LS" check >/dev/null 2>&1
+  rc=$?
+  if [ "$rc" -eq 0 ] || [ "$rc" -eq 1 ]; then
+    say_pass "behavioral: loop-status.sh check returns a clean 0/1 against a live ledger (rc=$rc)"
   else
-    say_fail "behavioral: loop-status.sh check exited unexpectedly ($rc)"
+    say_fail "behavioral: loop-status.sh check exited unexpectedly (rc=$rc)"
   fi
+
   rm -rf "$tmp_ws"
 fi
 

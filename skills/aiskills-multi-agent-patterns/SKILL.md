@@ -6,8 +6,9 @@ description: Orchestration patterns for splitting complex work across multiple a
 # Multi-Agent Patterns
 
 **Loop stage:** Fan-Out — orchestration patterns that split coding work across the right agent
-roles, run them in true parallel, and integrate (Loop 3). This skill is the orchestration VIEW of that loop; the loop taxonomy
-entry conditions, and stop reasons live here.
+roles, run them in true parallel, and integrate (L3). This skill is the orchestration VIEW of
+that loop; the loop taxonomy, entry conditions, and stop reasons live in `aiskills-agentic-loops`,
+not here.
 
 **Loop subgraph** (grammar in `aiskills-agentic-loops`, activation in `brain/loop-contract.md` — neither
 restated here): **Fan-Out orchestration: the L3 dispatch/join mechanics.**

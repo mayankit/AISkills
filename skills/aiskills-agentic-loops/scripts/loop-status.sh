@@ -9,38 +9,39 @@
 # correct and internally consistent rather than guessed character-for-character.
 # Treat this file as "faithful in behavior, not proven byte-identical."
 #
-# Every line an agent shows in chat goes through this script so the loop
-# discipline leaves an auditable trail, not prose. Malformed lines are
-# rejected (exit 2) and nothing is written — the validator IS the discipline.
+# This is a RECORDER, not a gate. It formats a status line, echoes it, and
+# appends it (ISO-timestamped) to the ledger. The PLAN block's structure and the
+# five STOP conditions are validated; other line text is recorded as written. A
+# host with no shell emits the identical lines as plain text and loses only the
+# file. Plain bash — the only external dependency is `git`, for the root climb.
 #
-# Ledger path: <workspace-root>/.agentic-loops/loop-ledger.md
-# Workspace root resolution (deterministic):
-#   1. AGENT_WS_ROOT — exported once by the loop-contract bootstrap; always wins.
-#   2. Climb out of any git work tree (including nested repos): the ledger must
-#      NEVER live inside a repository where it could be accidentally committed.
-#   3. If the current directory is not inside a repo, it IS the root.
-#   4. $HOME — stable per-user fallback if the climb reaches /.
+# Ledger path: <AGENT_WS_ROOT>/.agentic-loops/loop-ledger.md
+# Workspace root resolution:
+#   1. AGENT_WS_ROOT if it is set and names a directory; otherwise a warning and:
+#   2. the first ancestor of $(pwd) that is NOT inside a git work tree — the
+#      ledger must never live inside a repository where it could be committed;
+#   3. $HOME if that climb reaches /.
 set -euo pipefail
 
 usage() {
   cat >&2 <<'EOF'
 Usage:
-  loop-status.sh PLAN <-                    # multi-line plan tree from stdin
-  loop-status.sh <L0|L1|L2|L2a|L2b|L3|L4> <text...>
-  loop-status.sh STOP <text...>             # DONE gets a check-glyph, all else a hold-glyph
-  loop-status.sh LEDGER <text...>           # one-line audit note that closes a loop
-  loop-status.sh check [minutes=30]         # audit the ledger for a live discipline trail
+  loop-status.sh PLAN <-                     # multi-line plan tree from stdin (structure validated)
+  loop-status.sh <L0|L1|L2|L3|L4> <text...>  # one status line (a trailing letter, e.g. L2a, is tolerated)
+  loop-status.sh STOP <DONE|BLOCKED-EXTERNAL|BLOCKED-AMBIGUOUS|NO-PROGRESS|BUDGET> <note...>
+  loop-status.sh LEDGER <text...>            # one-line note that closes a loop
+  loop-status.sh check [minutes=30]          # audit: PLAN recorded, recent activity, STOP/Ledger paired
 
-The ledger is echoed AND appended (ISO-timestamped) to:
-  <workspace-root>/.agentic-loops/loop-ledger.md
+Lines are echoed AND appended (ISO-timestamped) to:
+  <AGENT_WS_ROOT-or-first-non-repo-ancestor>/.agentic-loops/loop-ledger.md
 EOF
   exit 2
 }
 
 _find_ws_root() {
-  if [ -n "${AGENT_WS_ROOT:-}" ] && [ -d "${AGENT_WS_ROOT}" ]; then
-    echo "$AGENT_WS_ROOT"
-    return
+  if [ -n "${AGENT_WS_ROOT:-}" ]; then
+    if [ -d "${AGENT_WS_ROOT}" ]; then echo "$AGENT_WS_ROOT"; return; fi
+    echo "loop-status.sh: AGENT_WS_ROOT='$AGENT_WS_ROOT' is not a directory — using the repo climb instead" >&2
   fi
   local dir="$(pwd)" top
   while [ "$dir" != "/" ]; do
@@ -70,7 +71,7 @@ if [ "${1:-}" = "check" ]; then
 
   fail=0
 
-  if ! grep -q '● PLAN' "$ledger"; then
+  if ! grep -qE '(◇|●) PLAN' "$ledger"; then
     echo "CHECK: WARN — ledger has no PLAN entry (a plan was never emitted as a tool action)"
     fail=1
   fi
@@ -119,15 +120,22 @@ case "$level" in
 
     first_line="$(printf '%s\n' "$block" | head -1)"
     case "$first_line" in
-      '● PLAN'*) ;;
-      *) echo "loop-status.sh: REJECTED — a PLAN block must start with '● PLAN' (got: '$first_line')" >&2; exit 2 ;;
+      '◇ PLAN'*|'● PLAN'*|'TASK '*|'TASK') ;;
+      *) echo "loop-status.sh: REJECTED — a PLAN block must start with '◇ PLAN' or a 'TASK' root line (got: '$first_line')" >&2; exit 2 ;;
     esac
 
+    TAB="$(printf '\t')"
     lineno=0
     while IFS= read -r line; do
       lineno=$((lineno + 1))
       [ "$lineno" -eq 1 ] && continue   # header already validated
       [ -z "$line" ] && continue        # blank lines allowed
+
+      case "$line" in
+        *"$TAB"*)
+          echo "loop-status.sh: REJECTED — plan indentation must be spaces, not tabs (line $lineno: '$line')" >&2
+          exit 2 ;;
+      esac
 
       lead="${line%%[!\ ]*}"
       if [ $(( ${#lead} % 2 )) -ne 0 ]; then
@@ -137,13 +145,13 @@ case "$level" in
 
       body="${line#"$lead"}"
       case "$body" in
-        '○'*|'●'*)
+        '●'*|'○'*)
           if ! printf '%s' "$body" | grep -q 'stop:'; then
-            echo "loop-status.sh: REJECTED — every TASK/loop line in a plan must carry '· stop:<condition>' (line $lineno: '$body')" >&2
+            echo "loop-status.sh: REJECTED — an open/pending plan line (●/○) must carry 'stop:<condition>' (line $lineno: '$body')" >&2
             exit 2
           fi
           ;;
-        *) ;;  # free-text notes under a task are allowed without a stop condition
+        *) ;;  # closed (✓), abandoned (~~ / —), TASK, ◇ PLAN, and free-text notes need no stop:
       esac
     done <<PLAN_BLOCK
 $block
@@ -156,25 +164,28 @@ PLAN_BLOCK
     ;;
 
   # -------------------------------------------------------------------------
-  # L0-L4 (with L2a/L2b siblings): a single status line
+  # L0-L4: a single status line. Concurrent loops are told apart by their
+  # [piece] tag in the text, not a letter suffix — but a trailing letter
+  # (L2a) is tolerated so older muscle memory doesn't error out.
   # -------------------------------------------------------------------------
-  L0|L1|L2|L2a|L2b|L3|L4)
+  L[0-4]|L[0-4][a-z])
     text="$*"
     [ -n "$text" ] || { echo "loop-status.sh: REJECTED — $level requires status text" >&2; exit 2; }
-    line="● ${level} ${text}"
+    line="◆ ${level} ${text}"
     ;;
 
   # -------------------------------------------------------------------------
-  # STOP: DONE gets a check-glyph, every other stop condition a hold-glyph
+  # STOP: the first token must name one of the five stop conditions
   # -------------------------------------------------------------------------
   STOP)
     text="$*"
     [ -n "$text" ] || { echo "loop-status.sh: REJECTED — STOP requires a named condition" >&2; exit 2; }
-    case "$text" in
-      DONE*) glyph="✅" ;;
-      *)     glyph="🟡" ;;
+    cond="${text%% *}"
+    case "$cond" in
+      DONE|BLOCKED-EXTERNAL|BLOCKED-AMBIGUOUS|NO-PROGRESS|BUDGET) ;;
+      *) echo "loop-status.sh: REJECTED — STOP must name one of: DONE BLOCKED-EXTERNAL BLOCKED-AMBIGUOUS NO-PROGRESS BUDGET (got: '$cond')" >&2; exit 2 ;;
     esac
-    line="${glyph} STOP: ${text}"
+    line="◆ STOP: ${text}"
     ;;
 
   # -------------------------------------------------------------------------
@@ -187,7 +198,7 @@ PLAN_BLOCK
     ;;
 
   *)
-    echo "loop-status.sh: REJECTED — unknown level '$level' (expected L0-4|L2a|L2b|PLAN|STOP|LEDGER|check)" >&2
+    echo "loop-status.sh: REJECTED — unknown level '$level' (expected L0-L4|PLAN|STOP|LEDGER|check)" >&2
     exit 2
     ;;
 esac

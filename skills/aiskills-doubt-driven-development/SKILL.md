@@ -149,5 +149,5 @@ A doubt-driven review is complete when:
 - [ ] No "it should be fine" statements remain — only "I verified because..."
 
 Emit the splice's status line when `aiskills-agentic-loops` is loaded:
-`♦ L2 Self-Correct [DOUBT] · open · iter 1 · ORIENT · stop:claims-reconciled · strike 0/2` —
-a doubt pass with no ♦ line is a silent skip.
+`◆ L2 Build [DOUBT] · open · iter 1 · ORIENT · stop:claims-reconciled · strike 0/2` —
+a doubt pass with no `◆` line is a silent skip.

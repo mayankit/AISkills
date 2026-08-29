@@ -27,9 +27,11 @@ The loop mechanics live in one file; every domain skill just plugs into them.
 |---|---|---|
 | **BRAIN** | `brain/loop-contract.md` | The single, always-on activation authority. Classifies every incoming task (the Task Graph), decides which loop graph and which skills apply, and carries the seven non-negotiable rules that hold across every graph. Small on purpose — everything else loads on demand. |
 | **SPINE** | `skills/aiskills-build-discipline/SKILL.md` | The delivery procedure for any code edit: Phase 0 (locate the real target, identify the real verification gate, build a Convention Checklist) → RED → GREEN → REFACTOR → VERIFY → Definition of Done. The coding gate — *"can I name the currently-failing test this code is about to make pass?"* — fires before every implementation write, no exceptions. |
-| **LEDGER** | `skills/aiskills-agentic-loops/scripts/{loop-status.sh,fanout-check.sh}` | Every plan tree and status line is validated and appended, ISO-timestamped, to `<workspace-root>/.agentic-loops/loop-ledger.md`, resolved outside any git repo so it's never accidentally committed. Malformed lines are rejected — the validator *is* the discipline, not a suggestion layered on top of one. |
+| **LEDGER** | `skills/aiskills-agentic-loops/scripts/{loop-status.sh,fanout-check.sh}` | A running, honest record of what was tried, what worked, what failed, and what changed — the plan tree plus every status line, ISO-timestamped, in `<AGENT_WS_ROOT>/.agentic-loops/loop-ledger.md` (resolved outside any git repo so it's never accidentally committed). The scripts format, append, and audit the ledger; they validate the plan block's structure and the five stop conditions. They are a **convenience, not a runtime** — a host with no shell emits the identical lines as plain text and loses only the file. |
 
-The loop **grammar** itself — the taxonomy (L0 Convention-Model, L1 Context, L2 Self-Correct,
+The discipline is a set of **plain-text conventions**, not a product feature: the loop catalog
+and the plan/ledger file are markdown and bash that any capable tool-using agent can follow.
+The **grammar** itself — the taxonomy (L0 Convention, L1 Context, L2 Build & Self-Correct,
 L3 Fan-Out, L4 Refinement), OODA iteration, status-line format, the plan tree, the two-strike
 rule, same-turn parallel fan-out — lives in exactly one place: `skills/aiskills-agentic-loops/SKILL.md`.
 Every other skill declares a one-line `Loop subgraph` in that grammar instead of restating any
@@ -93,55 +95,67 @@ always-on contract.
 ## Install — how to wire this into different tools
 
 Every host needs the same three things wired in: the **brain** always in context, the
-**skills** readable on demand, and (optionally) the **agents** as dedicated roles. The
-mechanism differs per tool; the content doesn't.
+**skills** readable on demand, and (optionally) the **agents** as dedicated roles. The content
+is identical everywhere — only the **mount point** differs, so use each host's *strongest*
+standing-instruction slot, not the lowest common one:
+
+| Host | Brain goes in | Skills readable via | Agents |
+|---|---|---|---|
+| Claude Code | `~/.claude/CLAUDE.md` (or a custom **output style** — stronger; `CLAUDE.md` is soft context) | `~/.claude/skills/` or `.claude/skills/` | `~/.claude/agents/*.md` sub-agents |
+| Codex / any `AGENTS.md` host | `AGENTS.md` (repo) or `~/.codex/AGENTS.md` | clone kept readable + `export AISKILLS_HOME=<clone>` | paste an agent body as a profile prompt |
+| Cursor / Windsurf | `.cursorrules` / `.windsurfrules` / custom-instructions panel | clone beside the workspace + `AISKILLS_HOME` | agent body as a custom mode |
+| Kiro | a steering file (`.kiro/steering/*.md`, "always") | clone in/near the workspace + `AISKILLS_HOME` | agent body as a steering-scoped role |
+| Any other | wherever it keeps always-on context | any readable path (`$AISKILLS_HOME/skills`, `./skills`, …) | skip if no profile support — brain + skills suffice |
+
+The brain's bootstrap resolves the skill scripts across
+`$AISKILLS_HOME/skills` → `~/.claude/skills` → `./.claude/skills` → `./skills` (first hit wins),
+so `export AISKILLS_HOME=<clone>` is all a non-Claude host needs.
 
 ### Claude Code
 
 ```bash
 # 1. Skills — user-level (every project)
 mkdir -p ~/.claude/skills && cp -r skills/* ~/.claude/skills/
-#   ...or project-level (this repo only)
-mkdir -p .claude/skills && cp -r skills/* .claude/skills/
+#   ...or project-level (this repo only): mkdir -p .claude/skills && cp -r skills/* .claude/skills/
 
-# 2. Brain — append to your memory file so it's always in context
-cat brain/loop-contract.md >> ~/.claude/CLAUDE.md      # global, every project
-#   or: cat brain/loop-contract.md >> ./CLAUDE.md       # this project only
+# 2. Brain — append once to your memory file (idempotent: the sentinel guards re-runs)
+grep -q 'aiskills-brain-begin' ~/.claude/CLAUDE.md 2>/dev/null || {
+  printf '\n<!-- aiskills-brain-begin -->\n' >> ~/.claude/CLAUDE.md
+  cat brain/loop-contract.md                 >> ~/.claude/CLAUDE.md
+  printf '\n<!-- aiskills-brain-end -->\n'   >> ~/.claude/CLAUDE.md
+}
+#   `CLAUDE.md` is soft context. For a stronger mount, put the same content in a custom
+#   output style (~/.claude/output-styles/loops-within-loops.md) and `/output-style` it on.
 
 # 3. Agents (optional) — install as Claude Code subagents
 mkdir -p ~/.claude/agents
 for a in agents/*.agent.md; do cp "$a" ~/.claude/agents/"$(basename "${a%.agent.md}").md"; done
 
 # 4. Verify: ask Claude to "build X, test-first" in any project — you should see a
-#    ● PLAN tree before the first tool call, a status line per loop transition, and a real
-#    ledger appear at <workspace-root>/.agentic-loops/loop-ledger.md
+#    ◇ PLAN tree before the first tool call, a status line per loop transition, and a real
+#    ledger appear at <AGENT_WS_ROOT>/.agentic-loops/loop-ledger.md
 ```
 
 ### Codex / any `AGENTS.md`-reading host
 
 ```bash
-git clone <this-repo> aiSkills
+git clone <this-repo> aiSkills && export AISKILLS_HOME="$PWD/aiSkills"
 
 # 1. Brain — append the contract to the AGENTS.md your host actually reads
-cat aiSkills/brain/loop-contract.md >> AGENTS.md        # repo-level
+cat "$AISKILLS_HOME/brain/loop-contract.md" >> AGENTS.md   # repo-level
 #   or ~/.codex/AGENTS.md for a cross-project default, if your host supports one
 
-# 2. Skills — keep the clone readable; the brain's own text tells the agent skills live at
-#    aiSkills/skills/<name>/SKILL.md and to load them on demand. No copying needed.
-
-# 3. Agents (optional) — paste an agents/<name>.agent.md body as a dedicated profile's
-#    system prompt, or at the top of a session when you want that role.
+# 2. Skills — no copying: the brain's resolution order finds them under $AISKILLS_HOME/skills.
+# 3. Agents (optional) — paste an agents/aiskills-<name>.agent.md body as a profile's system prompt.
 ```
 
-### Cursor / Windsurf / other IDE agents
+### Cursor / Windsurf / Kiro / other IDE agents
 
-1. **Brain** — paste `brain/loop-contract.md` into the tool's persistent rules file
-   (`.cursorrules`, `.windsurfrules`, or your tool's "custom instructions" panel).
-2. **Skills** — keep this repo cloned inside or next to your workspace. The brain's own
-   resolution order tells the agent to read `skills/<name>/SKILL.md` on demand; nothing to
-   configure beyond the file being reachable.
-3. **Agents** — use each `agents/<name>.agent.md` body as a custom mode or profile prompt for
-   that role.
+1. **Brain** — paste `brain/loop-contract.md` into the tool's persistent slot (`.cursorrules`,
+   `.windsurfrules`, a Kiro "always" steering file, or the custom-instructions panel).
+2. **Skills** — keep this repo cloned in or beside your workspace and `export AISKILLS_HOME=<clone>`
+   (or just clone it as `./skills`); the brain's resolution order does the rest.
+3. **Agents** — use each `agents/aiskills-<name>.agent.md` body as a custom mode / role prompt.
 
 ### GitHub Copilot Workspace / any chat-only agent with file access
 
@@ -180,8 +194,8 @@ bash tests/agents/lint_agents.sh  # do the 4 agent specs actually commit to what
 ```
 
 Exit 0 on both = every check passed. Run these after editing anything in this package — they're
-this repo's own CI gate, and fittingly, `tests/check.sh` was written before most of the content
-it verifies.
+this repo's own CI gate: structure, cross-reference completeness, the enforcement-critical
+phrases, and the ledger scripts' actual behavior.
 
 ## Layout
 

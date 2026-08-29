@@ -1,9 +1,11 @@
 # Loop Contract (the always-on BRAIN)
 
-This file is the single activation authority for the loop discipline. Keep it always in
-context (system prompt, `CLAUDE.md`/`AGENTS.md` include, or your host's persistent-context
-mechanism); it stays small on purpose. Skills and agent prompts MUST NOT restate these rules;
-they stay lean-on-demand. The detailed mechanics live in two skills, loaded on demand:
+This file is the single activation authority for the loop discipline. It is a set of
+**conventions written in plain text** — not a product feature and not a runtime enforced by
+code. Keep it always in context (system prompt, `CLAUDE.md`/`AGENTS.md` include, Kiro steering,
+Cursor rules, or your host's persistent-context mechanism); it stays small on purpose. Skills
+and agent prompts MUST NOT restate these rules; they stay lean-on-demand. The detailed
+mechanics live in two skills, loaded on demand:
 
 - **`aiskills-agentic-loops`** — the loop taxonomy (L0-L4), status-line format, plan tree, fan-out
   mechanics, stop conditions. Load it for any multi-step task.
@@ -19,19 +21,29 @@ Skip this for routing-lite turns. A pure quick-QA turn (the Routing row below) m
 call and must NOT run this bootstrap. Run it only on the first turn that starts real
 multi-step work — the first turn a plan tree gets emitted for, not every turn after.
 
-Resolve the ledger script and pin the workspace root (requires a shell tool):
+Resolve the ledger script and pin the workspace root (requires a shell tool). **Skill
+resolution order** — first hit wins, and finding nothing is fine (emit lines as plain text):
+`$AISKILLS_HOME/skills` → `~/.claude/skills` → `./.claude/skills` → `./skills`.
 
 ```bash
-_LOOP_SH=$(find ~/.claude/skills -maxdepth 6 -path "*aiskills-agentic-loops/scripts/loop-status.sh" 2>/dev/null | head -1)
-export AGENT_WS_ROOT=$(pwd)   # pin the ledger root — run this from the workspace root, outside any git repo when possible
-echo "loop-status: ${_LOOP_SH:-none} (emit lines as plain text if none)"
+for _d in "${AISKILLS_HOME:-}/skills" ~/.claude/skills ./.claude/skills ./skills; do
+  _LOOP_SH=$(find "$_d" -maxdepth 6 -path "*aiskills-agentic-loops/scripts/loop-status.sh" 2>/dev/null | head -1)
+  [ -n "$_LOOP_SH" ] && break
+done
+# Pin the ledger root to the first ancestor that is NOT inside a git repo — a ledger
+# committed by accident defeats its purpose. (This mirrors the script's own fallback climb.)
+_p=$(pwd)
+while _top=$(git -C "$_p" rev-parse --show-toplevel 2>/dev/null); do _p=$(dirname "$_top"); done
+export AGENT_WS_ROOT="$_p"
+echo "loop-status: ${_LOOP_SH:-none — plain text} · ledger root: $AGENT_WS_ROOT"
 ```
 
-All ledger writes go through that script (and its sibling `fanout-check.sh`, in the same
-directory). `AGENT_WS_ROOT` makes the ledger location deterministic; without it, the script
-climbs out of any enclosing git work tree and falls back to `$HOME`. The ledger must never live
-inside a repository, where it could be accidentally committed. If no shell exists at all, emit
-the identical lines as plain text — the format doesn't change.
+The ledger scripts are a **recording and formatting convenience**, not a gate: they format a
+line, append it ISO-timestamped to `<AGENT_WS_ROOT>/.agentic-loops/loop-ledger.md`, and
+(`loop-status.sh check`) audit that a trail exists. `fanout-check.sh` records the fan-out
+decision so the ledger shows whether independent pieces opened together. If no shell exists,
+emit the identical lines as plain text — the format doesn't change and nothing is lost but the
+file.
 
 ## The Task Graph — pick the loop graph by task type, then load only its skills
 
@@ -50,6 +62,8 @@ both of those still put implementation behind a failing check first, they just d
 | **Review → fix transition** | CLOSE the review graph, then open a Build graph — never patch-and-post from inside a review | add `aiskills-build-discipline` at the transition |
 | **Incident / investigation** | Investigate graph: triage → scope → mitigate first → hypothesize → verify → guard | `aiskills-incident-investigation` |
 | **Design** (ORIENT/DECIDE-heavy) | L1 Context → aiskills-design (ORIENT/DECIDE) → decision recorded as ADR | `aiskills-design` — no build gate unless code follows |
+| **Performance / capacity** (slow endpoint, traffic growth — over already-green code) | L1 Context → L4 Refinement [measure → change → verify] over a green L2 | `aiskills-performance-tuning` — measure first; never optimize without data |
+| **Research / analysis** (literature review, competitive analysis, "find out whether…") | L0 (read broadly) → L1 (narrow to the question) → L2 with a cite-first gate → L4 (overstated / missing?) | `aiskills-agentic-loops`; L2's "done" is *every claim traced to a real source*, not tests-green |
 | **Hard-to-reverse act** (security, data, payments, prod-rollback) | a `[DOUBT]` splice inside whichever graph is already open | `aiskills-doubt-driven-development` |
 | **Routing / quick QA** (single lookup, no state change) | Single pass — plan tree and ledger optional | `aiskills-skill-routing` if the right skill is unclear |
 
@@ -71,14 +85,15 @@ change no grammar, and load alongside whichever skill owns the loop they're feed
 These seven hold across every graph in the table above, regardless of which skills are loaded:
 
 1. **Plan before the first tool call.** Any task expected to take more than one or two tool
-   calls gets a `● PLAN` tree emitted before work starts — not after the first action, not only
+   calls gets a `◇ PLAN` tree emitted before work starts — not after the first action, not only
    once "it turns out to be complicated." A trivial single-step task can skip it; anything else
    can't. The tree's format (indentation, per-line `stop:<condition>`, glyphs) is defined once,
    in `aiskills-agentic-loops` — never redefined per skill.
 2. **Signal position, don't just narrate it.** Every loop open, close, and DONE gets one status
-   line, written through the ledger script (`aiskills-agentic-loops`'s `loop-status.sh`) when a shell
-   exists, or the identical line as plain text when it doesn't. A task with no visible status
-   lines and no ledger entries has left the discipline even if the underlying work is fine.
+   line — recorded via the ledger script (`aiskills-agentic-loops`'s `loop-status.sh`) when a
+   shell exists, or emitted as the identical plain-text line when it doesn't. A task with no
+   visible status lines and no ledger entries has left the discipline even if the underlying
+   work is fine.
 3. **Every open loop names its stop condition up front**, chosen from exactly five:
    `DONE`, `BLOCKED-EXTERNAL` (needs something outside the agent's control), `BLOCKED-AMBIGUOUS`
    (needs a human decision), `NO-PROGRESS` (repeated attempts aren't converging), or `BUDGET`
@@ -90,8 +105,8 @@ These seven hold across every graph in the table above, regardless of which skil
    `strike <s>/2` tracking).
 5. **Independent work is dispatched together, in one turn.** Two or more pieces with no shared
    mutable file are never serialized — not across turns, and not by awaiting one subagent
-   before dispatching the next. This is enforced mechanically by the ledger scripts
-   (`fanout-check.sh` + the sibling-loop tripwire in `loop-status.sh`), not left to discretion.
+   before dispatching the next. Record the decision with `fanout-check.sh <n>` before
+   dispatching; the ledger's timestamps then show whether the pieces actually opened together.
 6. **Never hand back work you had the tools to finish.** "Here's what you'd need to do next" is
    only acceptable at a genuine `BLOCKED-*` stop, never as a substitute for finishing a task the
    agent could complete itself in the same session.

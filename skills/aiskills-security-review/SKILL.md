@@ -18,7 +18,7 @@ pair with `aiskills-doubt-driven-development` for high-stakes verification.
 
 **Loop invariant:** each pass over the checklist either surfaces a new issue class or confirms
 a category is clean — never re-walk a category without changing that state. A clean pass is
-still a visible ♦ line (auditable negative).
+still a visible `◆` line (auditable negative).
 
 ## Security Checklist
 

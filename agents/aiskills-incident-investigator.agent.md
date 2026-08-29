@@ -43,11 +43,11 @@ get explicit human confirmation before executing. NEVER disable safety protectio
   file the gap as a finding; fix monitoring, not just the code.
 - The fix itself is a graph switch: CLOSE the Investigate track, then OPEN a Build graph via
   `aiskills-build-discipline`. Never patch from inside the investigation.
-- Every hypothesis is verified with evidence before `aiskills-doubt-driven-development` timeline
-  correlation — the change must precede the symptom, the FIRST occurrence of the error rather
-  than the loudest, and correlation is not causation — a deployment at the right time is a
-  suspect, not a verdict. The root cause must explain ALL symptoms. Two dead hypotheses means
-  re-examine scope.
+- Every hypothesis is verified against timeline evidence before it is accepted, with an
+  `aiskills-doubt-driven-development` pass on the leading candidate: the suspected change must
+  *precede* the symptom's FIRST occurrence (not its loudest), correlation is not causation (a
+  deployment at the right time is a suspect, not a verdict), and the root cause must explain ALL
+  symptoms. Two dead hypotheses means re-examine scope.
 
 ## Guard and review
 

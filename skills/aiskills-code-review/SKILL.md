@@ -10,31 +10,27 @@ description: Structured code review methodology covering correctness, security, 
 **Loop subgraph** (grammar in `aiskills-agentic-loops`, activation in `brain/loop-contract.md` — neither
 restated here): **this skill runs the Code-review row of the contract's Task Graph:**
 
-L1 Context — the FIRST read (all four independent reads, fanned out in ONE turn):
+- **L1 Context** — the FIRST read, all four independent reads fanned out in ONE turn:
   a. the change itself: description, diff, linked tickets and attached links
   b. existing reviewer comments (all revisions) — read them before forming opinions
   c. previous merged changes touching the same files — recurring feedback, agreed conventions
-     too) — recurring feedback and previously-agreed conventions
   d. neighbouring files in the project — the conventions the diff must match
-mini-L3 (the seven check dimensions below — read-only and independent):
-  fan them out ONE turn. The mini-L3 dimensions:
-  EVERY dimension gets its own ♦ line; CLEAN if the code were wrong! A test that can't fail is a finding.
-    • mini-L3.1 correctness · 2 findings
-    • mini-L3.2 security · CLEAN
-  one line per dimension, all seven included
-· CLOSE (OBSERVE) = the findings report, GROUPED per dimension (CLEAN ones included)
+- **mini-L3** — the seven check dimensions below, read-only and independent: fan them out in ONE
+  turn. Every dimension gets its own `◆` line, told apart by its `[piece]` tag; a CLEAN
+  dimension is still a line (an auditable negative). One line per dimension, all seven included:
+    • ◆ mini-L3 [correctness] · 2 findings
+    • ◆ mini-L3 [security] · CLEAN
+- **CLOSE (OBSERVE)** = the findings report, grouped per dimension (CLEAN ones included),
+  showing what L1 read and what other reviewers already said. `stop:findings-reported`.
 
-- stop:findings-reported
+Never collapse the mini-fan-out into a single pass with findings dumped at the end — a finding
+must be tied to the dimension pass that produced it.
 
-Never collapse the mini-fan-out into a single pass with findings dumped at the
-end — a finding that cannot be tied to a dimension pass that produced it, and is auditable.
-
-- **A review writes no code.** Do NOT load `aiskills-build-discipline` for it; if the review leads to
-  FIXING anything, that is a graph switch: CLOSE the review graph, then
-  open the Build graph (Phase 0 → RED → GREEN → REFACTOR → VERIFY). Never patch-and-post from inside a review.
-- A review that skips L1's context reads is context-blind and produces duplicate, dublicate, or
-  already-said comments. The findings report must SHOW what L1 read, what other reviewers
-  already said.
+- **A review writes no code.** Do NOT load `aiskills-build-discipline` for it; if the review
+  leads to FIXING anything, that is a graph switch: CLOSE the review graph, then open the Build
+  graph (Phase 0 → RED → GREEN → REFACTOR → VERIFY). Never patch-and-post from inside a review.
+- A review that skips L1's context reads is context-blind and produces duplicate or
+  already-said comments.
 
 ## The seven check dimensions
 

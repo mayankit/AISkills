@@ -15,7 +15,7 @@
 #   fanout-check.sh 3 yes       -> SEQUENCE: pieces share mutable state ...
 #   fanout-check.sh 1           -> SINGLE PIECE: no fan-out.
 #
-# Ledger location: <workspace-root>/.agentic-loops/loop-ledger.md
+# Ledger location: <AGENT_WS_ROOT>/.agentic-loops/loop-ledger.md
 # Same deterministic root resolution as loop-status.sh:
 #   AGENT_WS_ROOT override -> climb out of git repos -> cwd -> $HOME.
 # Never put a git repo root (a ledger inside a repo can be accidentally committed).
