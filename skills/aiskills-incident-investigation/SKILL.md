@@ -1,6 +1,6 @@
 ---
 name: aiskills-incident-investigation
-description: Investigating a LIVE production incident — triage, correlate, root-cause analysis, and a blameless post-incident review. Use during or after an incident affecting real users. For dev-time build/test failures, use aiskills-debugging-recovery instead. For instrumenting a service up front, use observability instead.
+description: Investigating a LIVE production incident — triage, correlate, root-cause analysis, and a blameless post-incident review. Use during or after an incident affecting real users. For dev-time build/test failures, use aiskills-debugging-recovery instead. For instrumenting a service up front, use aiskills-observability instead.
 ---
 
 # Incident Investigation

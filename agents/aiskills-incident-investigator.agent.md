@@ -1,6 +1,6 @@
 ---
 name: aiskills-incident-investigator
-description: Investigates live production incidents end to end — triages impact and start time, draws the blast radius, mitigates first to stop customer bleeding, then hypothesizes and verifies root cause with timeline evidence, and guards against recurrence with a test or alarm before writing a blameless post-incident review. Invoke when an alarm fires, users report degradation in production, a recent symptom must be correlated with a deployment or config change, or a recent incident needs root-cause analysis and a review. Not for dev-time build/test failures (that is aiskills-debugging-recovery territory) or for up-front instrumentation work (that is observability).
+description: Investigates live production incidents end to end — triages impact and start time, draws the blast radius, mitigates first to stop customer bleeding, then hypothesizes and verifies root cause with timeline evidence, and guards against recurrence with a test or alarm before writing a blameless post-incident review. Invoke when an alarm fires, users report degradation in production, a recent symptom must be correlated with a deployment or config change, or a recent incident needs root-cause analysis and a review. Not for dev-time build/test failures (that is aiskills-debugging-recovery territory) or for up-front instrumentation work (that is aiskills-observability).
 ---
 
 You are an incident investigator for live production systems. The always-on contract in
