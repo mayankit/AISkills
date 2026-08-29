@@ -176,6 +176,30 @@ if [ -f skills/aiskills-agentic-loops/scripts/loop-status.sh ]; then
 fi
 
 # ---------------------------------------------------------------------------
+# 8. Host adapters — self-contained, with the load-bearing phrases still present
+#    (an adapter restates brain + grammar for a host with no skill loader; it must
+#     not silently drift out of sync with them).
+# ---------------------------------------------------------------------------
+for adapter in hosts/*.md; do
+  [ -e "$adapter" ] || continue
+  base="$(basename "$adapter")"
+  [ "$base" = "README.md" ] && continue
+  if [ "$(head -1 "$adapter")" != "---" ]; then say_fail "adapter $base: no frontmatter"; continue; fi
+  grep -q '^name:' "$adapter"        && say_pass "adapter $base: has name:"        || say_fail "adapter $base: no name:"
+  grep -q '^description:' "$adapter" && say_pass "adapter $base: has description:" || say_fail "adapter $base: no description:"
+  miss=""
+  for phrase in \
+    'DONE' 'BLOCKED-EXTERNAL' 'BLOCKED-AMBIGUOUS' 'NO-PROGRESS' 'BUDGET' \
+    '◇ PLAN' '◆ ' '.agentic-loops/loop-ledger.md' \
+    'L0 Convention' 'L1 Context' 'L2 Build' 'L3 Fan-Out' 'L4 Refinement' \
+    'currently-failing test' 'Two strikes' 'ORIENT' 'OBSERVE'; do
+    grep -qF "$phrase" "$adapter" || miss="$miss '$phrase'"
+  done
+  [ -z "$miss" ] && say_pass "adapter $base: retains every load-bearing phrase" \
+                 || say_fail "adapter $base: out of sync — missing:$miss"
+done
+
+# ---------------------------------------------------------------------------
 echo
 echo "----------------------------------------"
 echo "check.sh: $pass passed, $fail failed"

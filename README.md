@@ -101,7 +101,7 @@ standing-instruction slot, not the lowest common one:
 
 | Host | Brain goes in | Skills readable via | Agents |
 |---|---|---|---|
-| Claude Code | `~/.claude/CLAUDE.md` (or a custom **output style** — stronger; `CLAUDE.md` is soft context) | `~/.claude/skills/` or `.claude/skills/` | `~/.claude/agents/*.md` sub-agents |
+| Claude Code | **`hosts/claude-code-output-style.md` → `~/.claude/output-styles/`** (an output style edits the system prompt; `CLAUDE.md` is soft context and does not reliably drive the discipline) | `~/.claude/skills/` or `.claude/skills/` | `~/.claude/agents/*.md` sub-agents |
 | Codex / any `AGENTS.md` host | `AGENTS.md` (repo) or `~/.codex/AGENTS.md` | clone kept readable + `export AISKILLS_HOME=<clone>` | paste an agent body as a profile prompt |
 | Cursor / Windsurf | `.cursorrules` / `.windsurfrules` / custom-instructions panel | clone beside the workspace + `AISKILLS_HOME` | agent body as a custom mode |
 | Kiro | a steering file (`.kiro/steering/*.md`, "always") | clone in/near the workspace + `AISKILLS_HOME` | agent body as a steering-scoped role |
@@ -114,27 +114,27 @@ so `export AISKILLS_HOME=<clone>` is all a non-Claude host needs.
 ### Claude Code
 
 ```bash
-# 1. Skills — user-level (every project)
+# 1. Brain — install as an OUTPUT STYLE (edits the system prompt; this is the slot that works).
+mkdir -p ~/.claude/output-styles
+cp hosts/claude-code-output-style.md ~/.claude/output-styles/loops-within-loops.md
+#   then, inside Claude Code:  /output-style Loops Within Loops
+#   (CLAUDE.md is soft context — the output style supersedes it; you don't need both.)
+
+# 2. Skills — loaded on demand for depth, and they power the sub-agents
 mkdir -p ~/.claude/skills && cp -r skills/* ~/.claude/skills/
 #   ...or project-level (this repo only): mkdir -p .claude/skills && cp -r skills/* .claude/skills/
 
-# 2. Brain — append once to your memory file (idempotent: the sentinel guards re-runs)
-grep -q 'aiskills-brain-begin' ~/.claude/CLAUDE.md 2>/dev/null || {
-  printf '\n<!-- aiskills-brain-begin -->\n' >> ~/.claude/CLAUDE.md
-  cat brain/loop-contract.md                 >> ~/.claude/CLAUDE.md
-  printf '\n<!-- aiskills-brain-end -->\n'   >> ~/.claude/CLAUDE.md
-}
-#   `CLAUDE.md` is soft context. For a stronger mount, put the same content in a custom
-#   output style (~/.claude/output-styles/loops-within-loops.md) and `/output-style` it on.
-
-# 3. Agents (optional) — install as Claude Code subagents
+# 3. Agents (optional) — install as Claude Code sub-agents
 mkdir -p ~/.claude/agents
 for a in agents/*.agent.md; do cp "$a" ~/.claude/agents/"$(basename "${a%.agent.md}").md"; done
 
-# 4. Verify: ask Claude to "build X, test-first" in any project — you should see a
-#    ◇ PLAN tree before the first tool call, a status line per loop transition, and a real
-#    ledger appear at <AGENT_WS_ROOT>/.agentic-loops/loop-ledger.md
+# 4. Verify: with the output style on, ask Claude to "build X, test-first" in any project —
+#    you should see a ◇ PLAN tree before the first tool call, a ◆ status line per loop
+#    transition, and a ledger at <first-non-repo-parent>/.agentic-loops/loop-ledger.md
 ```
+
+Prefer the older `CLAUDE.md` mount? It still works as a fallback, just less reliably:
+`grep -q aiskills-brain-begin ~/.claude/CLAUDE.md || { printf '\n<!-- aiskills-brain-begin -->\n'; cat brain/loop-contract.md; printf '\n<!-- aiskills-brain-end -->\n'; } >> ~/.claude/CLAUDE.md`
 
 ### Codex / any `AGENTS.md`-reading host
 
@@ -217,6 +217,9 @@ agents/
   aiskills-code-reviewer.agent.md           # read-only review (Review graph)
   aiskills-incident-investigator.agent.md   # production incidents (Investigate graph)
   aiskills-architect.agent.md               # shaping + ADRs (Design graph)
+hosts/
+  claude-code-output-style.md              # HOST ADAPTER — brain+grammar as a Claude Code output style
+  README.md                                # when a host needs an adapter, and how to keep it in sync
 tests/
   check.sh                                  # the package's own structural/behavioral gate
   agents/lint_agents.sh                     # do the agent specs commit to their own descriptions?
