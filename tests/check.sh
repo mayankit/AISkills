@@ -26,7 +26,9 @@ for p in brain/loop-contract.md skills/aiskills-agentic-loops/SKILL.md \
          skills/aiskills-agentic-loops/scripts/loop-status.sh \
          skills/aiskills-agentic-loops/scripts/fanout-check.sh \
          skills/aiskills-build-discipline/SKILL.md README.md \
-         install.sh output-styles/loops-within-loops.md; do
+         install.sh output-styles/loops-within-loops.md \
+         hosts/kiro-steering.md hosts/README.md \
+         .claude-plugin/plugin.json .claude-plugin/marketplace.json; do
   if [ -e "$p" ]; then say_pass "structure: $p exists"; else say_fail "structure: $p is missing"; fi
 done
 
@@ -73,15 +75,25 @@ for dir in skills/*/; do
 done
 
 # ---------------------------------------------------------------------------
-# 4. Every agents/*.agent.md has name+description frontmatter
+# 4. Agent specs — plain *.md (the extension Claude Code plugins discover),
+#    each with name+description frontmatter and a brain-contract reference.
+#    Legacy *.agent.md must NOT remain: a plugin's agents/ scan ignores them.
 # ---------------------------------------------------------------------------
-for f in agents/*.agent.md; do
+if ls agents/*.agent.md >/dev/null 2>&1; then
+  say_fail "agents: legacy *.agent.md file(s) present — plugins only discover agents/*.md (rename them)"
+else
+  say_pass "agents: no legacy *.agent.md files (plugin-discoverable *.md only)"
+fi
+md_agents=0
+for f in agents/*.md; do
   [ -e "$f" ] || continue
-  name="$(basename "$f" .agent.md)"
+  md_agents=$((md_agents+1))
+  name="$(basename "$f" .md)"
   if ! grep -q "^name: $name$" "$f"; then say_fail "agent $name: frontmatter name: doesn't match filename"; else say_pass "agent $name: name: matches filename"; fi
   if ! grep -q '^description:' "$f"; then say_fail "agent $name: frontmatter has no description:"; else say_pass "agent $name: has description:"; fi
   if ! grep -q 'loop-contract.md' "$f"; then say_fail "agent $name: doesn't reference brain/loop-contract.md"; else say_pass "agent $name: references the brain contract"; fi
 done
+[ "$md_agents" -ge 4 ] && say_pass "agents: found $md_agents agents/*.md specs" || say_fail "agents: expected >=4 agents/*.md specs, found $md_agents"
 
 # ---------------------------------------------------------------------------
 # 5. Portability — no hardcoded absolute paths outside $HOME-relative examples
@@ -186,17 +198,25 @@ if [ -f skills/aiskills-agentic-loops/scripts/loop-status.sh ]; then
 fi
 
 # ---------------------------------------------------------------------------
-# 8. Host adapters — self-contained, with the load-bearing phrases still present
-#    (an adapter restates brain + grammar for a host with no skill loader; it must
-#     not silently drift out of sync with them).
+# 8. Host adapters — every self-contained adapter that RESTATES brain + grammar
+#    for a host with no skill loader must carry frontmatter and every
+#    load-bearing phrase, so it can't silently drift out of sync with
+#    brain/loop-contract.md and skills/aiskills-agentic-loops/SKILL.md.
+#
+#    Covered: output-styles/*.md (Claude Code) and hosts/*.md (Kiro steering,
+#    and any future self-contained host adapter). hosts/README.md is wiring
+#    notes, not a restatement, so it is skipped. Each adapter declares its
+#    required frontmatter key after the '|'.
 # ---------------------------------------------------------------------------
-for adapter in output-styles/*.md; do
-  [ -e "$adapter" ] || continue
-  base="$(basename "$adapter")"
-  [ "$base" = "README.md" ] && continue
+adapter_specs="output-styles/loops-within-loops.md|^name:
+hosts/kiro-steering.md|^inclusion:"
+while IFS='|' read -r adapter fmkey; do
+  [ -z "$adapter" ] && continue
+  base="$adapter"
+  if [ ! -f "$adapter" ]; then say_fail "adapter $base: missing"; continue; fi
   if [ "$(head -1 "$adapter")" != "---" ]; then say_fail "adapter $base: no frontmatter"; continue; fi
-  grep -q '^name:' "$adapter"        && say_pass "adapter $base: has name:"        || say_fail "adapter $base: no name:"
-  grep -q '^description:' "$adapter" && say_pass "adapter $base: has description:" || say_fail "adapter $base: no description:"
+  grep -qE "$fmkey" "$adapter" && say_pass "adapter $base: has frontmatter $fmkey" \
+                               || say_fail "adapter $base: frontmatter missing $fmkey"
   miss=""
   for phrase in \
     'DONE' 'BLOCKED-EXTERNAL' 'BLOCKED-AMBIGUOUS' 'NO-PROGRESS' 'BUDGET' \
@@ -207,7 +227,95 @@ for adapter in output-styles/*.md; do
   done
   [ -z "$miss" ] && say_pass "adapter $base: retains every load-bearing phrase" \
                  || say_fail "adapter $base: out of sync — missing:$miss"
+done <<< "$adapter_specs"
+
+# Any other hosts/*.md (besides README) is assumed to be a self-contained
+# restating adapter and must be listed in adapter_specs above — catch drift-in.
+for h in hosts/*.md; do
+  [ -e "$h" ] || continue
+  case "$(basename "$h")" in README.md) continue ;; esac
+  case "$h" in
+    hosts/kiro-steering.md) : ;;  # already checked above
+    *) printf '%s\n' "$adapter_specs" | grep -qF "$h" \
+         && say_pass "adapter $h: listed in adapter_specs" \
+         || say_fail "adapter $h: present but not listed in check.sh adapter_specs (add it + its phrase checks)" ;;
+  esac
 done
+
+# ---------------------------------------------------------------------------
+# 9. Claude Code plugin manifest — parses, names the plugin, components resolve.
+# ---------------------------------------------------------------------------
+PJ=.claude-plugin/plugin.json
+if [ ! -f "$PJ" ]; then
+  say_fail "plugin: $PJ missing"
+elif ! python3 -c 'import json,sys; json.load(open(sys.argv[1]))' "$PJ" 2>/dev/null; then
+  say_fail "plugin: $PJ is not valid JSON"
+else
+  say_pass "plugin: $PJ parses as JSON"
+  pj_name="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("name",""))' "$PJ")"
+  [ "$pj_name" = "aiskills" ] && say_pass "plugin: name is 'aiskills'" || say_fail "plugin: name is '$pj_name', expected 'aiskills'"
+  for k in version description; do
+    python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); sys.exit(0 if d.get(sys.argv[2]) else 1)' "$PJ" "$k" \
+      && say_pass "plugin: has $k" || say_fail "plugin: missing $k"
+  done
+  # components the plugin ships are discovered from these root dirs
+  for d in skills agents output-styles; do
+    [ -d "$d" ] && say_pass "plugin: component dir $d/ exists" || say_fail "plugin: component dir $d/ missing"
+  done
+fi
+
+# ---------------------------------------------------------------------------
+# 10. Marketplace manifest — parses, lists the plugin, its source resolves.
+# ---------------------------------------------------------------------------
+MP=.claude-plugin/marketplace.json
+if [ ! -f "$MP" ]; then
+  say_fail "marketplace: $MP missing"
+elif ! python3 -c 'import json,sys; json.load(open(sys.argv[1]))' "$MP" 2>/dev/null; then
+  say_fail "marketplace: $MP is not valid JSON"
+else
+  say_pass "marketplace: $MP parses as JSON"
+  python3 - "$MP" <<'PY'
+import json, sys, os
+d = json.load(open(sys.argv[1]))
+ok = True
+def check(cond, msg):
+    global ok
+    print(("PASS: " if cond else "FAIL: ") + msg)
+    ok = ok and cond
+check(bool(d.get("name")), "marketplace: has name")
+check(bool(d.get("description")), "marketplace: has description (needed for --strict)")
+check(bool(d.get("owner", {}).get("name")), "marketplace: owner.name present")
+plugins = d.get("plugins", [])
+entry = next((p for p in plugins if p.get("name") == "aiskills"), None)
+check(entry is not None, "marketplace: lists a plugin named 'aiskills'")
+if entry is not None:
+    src = entry.get("source")
+    check(src is not None, "marketplace: 'aiskills' entry has a source")
+    if isinstance(src, str):
+        p = os.path.normpath(os.path.join(".claude-plugin", "..", src))
+        check(os.path.isdir(p) and os.path.isfile(os.path.join(p, ".claude-plugin", "plugin.json")),
+              "marketplace: source %r resolves to a dir containing .claude-plugin/plugin.json" % src)
+    check(bool(entry.get("description")), "marketplace: 'aiskills' entry has a description")
+sys.exit(0 if ok else 1)
+PY
+  if [ $? -eq 0 ]; then say_pass "marketplace: manifest content checks passed"; else say_fail "marketplace: manifest content checks failed (see FAIL lines above)"; fi
+fi
+
+# ---------------------------------------------------------------------------
+# 11. `claude plugin validate` — run it when the CLI is present (skip cleanly
+#     otherwise; this repo's CI does not require the CLI).
+# ---------------------------------------------------------------------------
+if command -v claude >/dev/null 2>&1; then
+  for m in "$PJ" "$MP"; do
+    if [ -f "$m" ] && claude plugin validate --strict "$m" >/dev/null 2>&1; then
+      say_pass "claude plugin validate --strict $m: clean"
+    else
+      say_fail "claude plugin validate --strict $m: reported errors/warnings (run it directly to see them)"
+    fi
+  done
+else
+  say_pass "claude plugin validate: SKIPPED (no 'claude' CLI on PATH) — manifests still checked structurally above"
+fi
 
 # ---------------------------------------------------------------------------
 echo

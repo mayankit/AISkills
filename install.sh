@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
 # install.sh — wire aiSkills into a host from this repo. Idempotent and re-runnable.
 #
+# Claude Code users: prefer the plugin —
+#   /plugin marketplace add mayankit/AISkills
+#   /plugin install aiskills@aiskills
+# It ships the same skills + agents + output style, auto-activates the discipline
+# (force-for-plugin), and needs no file copying. This script stays for non-plugin
+# Claude Code setups and as the reference for wiring other hosts by hand.
+#
 #   ./install.sh                 # Claude Code (default host)
 #   ./install.sh claude-code     # same, explicit
 #   ./install.sh --no-activate   # copy the files but don't touch settings.json
@@ -21,7 +28,7 @@ for a in "$@"; do
     --uninstall)   UNINSTALL=1 ;;
     --dry-run)     DRY=1 ;;
     --no-activate) ACTIVATE=0 ;;
-    -h|--help)     sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help)     sed -n '2,19p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "install.sh: unknown argument '$a' (try --help)" >&2; exit 2 ;;
   esac
 done
@@ -64,9 +71,8 @@ install_claude_code() {
   done
 
   say "agents →  $AGENTS_DIR/"
-  for f in "$REPO"/agents/aiskills-*.agent.md; do
-    b="$(basename "${f%.agent.md}")"
-    run "cp '$f' '$AGENTS_DIR/$b.md'"
+  for f in "$REPO"/agents/aiskills-*.md; do
+    run "cp '$f' '$AGENTS_DIR/$(basename "$f")'"
   done
 
   say "output style →  $STYLE_DST"
@@ -88,16 +94,16 @@ install_claude_code() {
   say ""
   say "Done. $(ls -d "$SKILLS_DIR"/aiskills-* 2>/dev/null | wc -l | tr -d ' ') skills, 4 agents, 1 output style — all copied from this repo."
   if [ "$ACTIVATE" -eq 1 ]; then
-    say "Start a NEW Claude Code session to load it.  Disable with:  /output-style default"
+    say "Start a NEW Claude Code session to load it.  Disable with:  /config → Output style → Default"
   else
-    say "Turn it on inside Claude Code with:  /output-style \"$STYLE_NAME\""
+    say "Turn it on inside Claude Code with:  /config → Output style → \"$STYLE_NAME\""
   fi
 }
 
 uninstall_claude_code() {
   say "removing skills, agents, output style from $CLAUDE_DIR"
   for d in "$REPO"/skills/aiskills-*/; do run "rm -rf '$SKILLS_DIR/$(basename "$d")'"; done
-  for f in "$REPO"/agents/aiskills-*.agent.md; do run "rm -f '$AGENTS_DIR/$(basename "${f%.agent.md}").md'"; done
+  for f in "$REPO"/agents/aiskills-*.md; do run "rm -f '$AGENTS_DIR/$(basename "$f")'"; done
   run "rm -f '$STYLE_DST'"
   if [ -f "$SETTINGS" ] && command -v python3 >/dev/null 2>&1; then
     [ "$DRY" -eq 1 ] || cp "$SETTINGS" "$SETTINGS.aiskills-bak"

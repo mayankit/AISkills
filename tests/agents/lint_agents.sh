@@ -3,7 +3,7 @@
 #
 # These are static checks on the prompt text itself: does each agent.md actually
 # commit to the behaviors its description promises? This catches spec drift
-# (e.g. someone edits aiskills-code-reviewer.agent.md and quietly drops "writes no code")
+# (e.g. someone edits aiskills-code-reviewer.md and quietly drops "writes no code")
 # without needing to call a model.
 #
 # Exit 0 = every agent passed every one of its required assertions.
@@ -40,7 +40,7 @@ forbid() {
 }
 
 echo "== aiskills-builder-dev =="
-F=agents/aiskills-builder-dev.agent.md
+F=agents/aiskills-builder-dev.md
 require "$F" 'aiskills-build-discipline'                          "loads aiskills-build-discipline (the TDD spine)"
 require "$F" 'PLAN'                                       "commits to emitting a PLAN tree"
 require "$F" 'currently-failing test|failing test'        "commits to the named-failing-test coding gate"
@@ -52,7 +52,7 @@ require "$F" 'two-strike'                                   "commits to the two-
 
 echo
 echo "== aiskills-code-reviewer =="
-F=agents/aiskills-code-reviewer.agent.md
+F=agents/aiskills-code-reviewer.md
 require "$F" 'writes NO code|writes no code'                "explicitly commits to writing no code"
 require "$F" 'Blocker'                                       "defines a Blocker severity"
 require "$F" 'Major'                                          "defines a Major severity"
@@ -64,7 +64,7 @@ forbid  "$F" 'you (may|should|can) (edit|modify|write) (the )?(file|code|impleme
 
 echo
 echo "== aiskills-incident-investigator =="
-F=agents/aiskills-incident-investigator.agent.md
+F=agents/aiskills-incident-investigator.md
 require "$F" 'Mitigate first|mitigate first'                  "commits to the mitigate-first doctrine"
 require "$F" 'blast radius'                                     "commits to scoping the blast radius"
 require "$F" 'root.?cause'                                        "commits to root-cause analysis"
@@ -74,7 +74,7 @@ require "$F" 'guard'                                                  "commits t
 
 echo
 echo "== aiskills-architect =="
-F=agents/aiskills-architect.agent.md
+F=agents/aiskills-architect.md
 require "$F" 'ADR'                                                     "commits to recording ADRs"
 require "$F" 'decisions, contracts'                                      "states its deliverables are decisions/contracts"
 require "$F" 'never build|do not build|you do not build'                  "explicitly commits to not building"
@@ -84,7 +84,7 @@ forbid  "$F" 'implement the feature|write the implementation'                   
 
 echo
 echo "== all agents: shared contract =="
-for f in agents/*.agent.md; do
+for f in agents/*.md; do
   require "$f" 'loop-contract\.md'    "$(basename "$f"): defers to brain/loop-contract.md"
   require "$f" 'aiskills-agentic-loops'        "$(basename "$f"): loads aiskills-agentic-loops as a first action"
 done
