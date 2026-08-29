@@ -25,9 +25,19 @@ say_fail() { fail=$((fail+1)); echo "FAIL: $1"; }
 for p in brain/loop-contract.md skills/aiskills-agentic-loops/SKILL.md \
          skills/aiskills-agentic-loops/scripts/loop-status.sh \
          skills/aiskills-agentic-loops/scripts/fanout-check.sh \
-         skills/aiskills-build-discipline/SKILL.md README.md; do
+         skills/aiskills-build-discipline/SKILL.md README.md \
+         install.sh hosts/claude-code-output-style.md; do
   if [ -e "$p" ]; then say_pass "structure: $p exists"; else say_fail "structure: $p is missing"; fi
 done
+
+# install.sh must parse, be executable, and honour --dry-run without touching anything
+if bash -n install.sh 2>/dev/null; then say_pass "install.sh: passes bash -n"; else say_fail "install.sh: syntax error"; fi
+[ -x install.sh ] && say_pass "install.sh: is executable" || say_fail "install.sh: not executable (chmod +x)"
+if CLAUDE_CONFIG_DIR="$(mktemp -d)" bash install.sh --dry-run >/dev/null 2>&1; then
+  say_pass "install.sh --dry-run: exits 0 and changes nothing"
+else
+  say_fail "install.sh --dry-run: non-zero exit"
+fi
 
 # ---------------------------------------------------------------------------
 # 2. Every skills/<name>/ has a SKILL.md with name+description frontmatter

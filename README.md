@@ -92,11 +92,34 @@ none of them restate the loop grammar or the build spine, they just point at the
 All four load `aiskills-agentic-loops` as their first action and treat `brain/loop-contract.md` as their
 always-on contract.
 
-## Install — how to wire this into different tools
+## Install
 
-Every host needs the same three things wired in: the **brain** always in context, the
-**skills** readable on demand, and (optionally) the **agents** as dedicated roles. The content
-is identical everywhere — only the **mount point** differs, so use each host's *strongest*
+### Claude Code — one command
+
+```bash
+git clone https://github.com/mayankit/AISkills && cd AISkills
+./install.sh                 # copies skills + agents + the output style from this repo,
+                             # then sets it active in ~/.claude/settings.json
+```
+
+Start a **new** Claude Code session, then in any project ask for a real task
+(`build X, test-first`) — you should see a `◇ PLAN` tree before the first tool call, `◆` status
+lines per loop transition, and a ledger at `<first-non-repo-parent>/.agentic-loops/loop-ledger.md`.
+
+```bash
+./install.sh --dry-run       # show exactly what it would do
+./install.sh --no-activate   # install the files, don't touch settings.json
+./install.sh --uninstall     # remove everything it installed (backups left as *.aiskills-bak)
+```
+
+`install.sh` honours `$CLAUDE_CONFIG_DIR`, is safe to re-run, and needs only `bash` + `python3`
+(the latter just for the one settings.json key — skip it with `--no-activate`).
+
+### Other hosts — wire it by hand
+
+Every host needs the same three things: the **brain** always in context, the **skills**
+readable on demand, and (optionally) the **agents** as dedicated roles. The content is
+identical everywhere — only the **mount point** differs, so use each host's *strongest*
 standing-instruction slot, not the lowest common one:
 
 | Host | Brain goes in | Skills readable via | Agents |
@@ -111,29 +134,25 @@ The brain's bootstrap resolves the skill scripts across
 `$AISKILLS_HOME/skills` → `~/.claude/skills` → `./.claude/skills` → `./skills` (first hit wins),
 so `export AISKILLS_HOME=<clone>` is all a non-Claude host needs.
 
-### Claude Code
+#### Claude Code — what `install.sh` does, by hand
 
 ```bash
-# 1. Brain — install as an OUTPUT STYLE (edits the system prompt; this is the slot that works).
+# 1. Brain — as an OUTPUT STYLE (edits the system prompt; this is the slot that works)
 mkdir -p ~/.claude/output-styles
 cp hosts/claude-code-output-style.md ~/.claude/output-styles/loops-within-loops.md
 #   then, inside Claude Code:  /output-style Loops Within Loops
-#   (CLAUDE.md is soft context — the output style supersedes it; you don't need both.)
 
 # 2. Skills — loaded on demand for depth, and they power the sub-agents
-mkdir -p ~/.claude/skills && cp -r skills/* ~/.claude/skills/
-#   ...or project-level (this repo only): mkdir -p .claude/skills && cp -r skills/* .claude/skills/
+mkdir -p ~/.claude/skills && cp -r skills/aiskills-* ~/.claude/skills/
 
-# 3. Agents (optional) — install as Claude Code sub-agents
+# 3. Agents (optional) — Claude Code sub-agents
 mkdir -p ~/.claude/agents
-for a in agents/*.agent.md; do cp "$a" ~/.claude/agents/"$(basename "${a%.agent.md}").md"; done
-
-# 4. Verify: with the output style on, ask Claude to "build X, test-first" in any project —
-#    you should see a ◇ PLAN tree before the first tool call, a ◆ status line per loop
-#    transition, and a ledger at <first-non-repo-parent>/.agentic-loops/loop-ledger.md
+for a in agents/aiskills-*.agent.md; do cp "$a" ~/.claude/agents/"$(basename "${a%.agent.md}").md"; done
 ```
 
-Prefer the older `CLAUDE.md` mount? It still works as a fallback, just less reliably:
+`CLAUDE.md` is soft context and the output style supersedes it — you don't need both, and
+`install.sh` removes any older aiSkills brain block it finds there. If you still want the
+`CLAUDE.md` fallback instead of the output style:
 `grep -q aiskills-brain-begin ~/.claude/CLAUDE.md || { printf '\n<!-- aiskills-brain-begin -->\n'; cat brain/loop-contract.md; printf '\n<!-- aiskills-brain-end -->\n'; } >> ~/.claude/CLAUDE.md`
 
 ### Codex / any `AGENTS.md`-reading host
@@ -200,6 +219,7 @@ phrases, and the ledger scripts' actual behavior.
 ## Layout
 
 ```
+install.sh                                   # one-command Claude Code setup (--dry-run / --uninstall)
 brain/loop-contract.md                       # BRAIN — always-on activation authority
 skills/
   aiskills-agentic-loops/
