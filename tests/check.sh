@@ -26,7 +26,7 @@ for p in brain/loop-contract.md skills/aiskills-agentic-loops/SKILL.md \
          skills/aiskills-agentic-loops/scripts/loop-status.sh \
          skills/aiskills-agentic-loops/scripts/fanout-check.sh \
          skills/aiskills-build-discipline/SKILL.md README.md \
-         install.sh hosts/claude-code-output-style.md; do
+         install.sh output-styles/loops-within-loops.md; do
   if [ -e "$p" ]; then say_pass "structure: $p exists"; else say_fail "structure: $p is missing"; fi
 done
 
@@ -190,7 +190,7 @@ fi
 #    (an adapter restates brain + grammar for a host with no skill loader; it must
 #     not silently drift out of sync with them).
 # ---------------------------------------------------------------------------
-for adapter in hosts/*.md; do
+for adapter in output-styles/*.md; do
   [ -e "$adapter" ] || continue
   base="$(basename "$adapter")"
   [ "$base" = "README.md" ] && continue

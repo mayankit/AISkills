@@ -124,7 +124,7 @@ standing-instruction slot, not the lowest common one:
 
 | Host | Brain goes in | Skills readable via | Agents |
 |---|---|---|---|
-| Claude Code | **`hosts/claude-code-output-style.md` → `~/.claude/output-styles/`** (an output style edits the system prompt; `CLAUDE.md` is soft context and does not reliably drive the discipline) | `~/.claude/skills/` or `.claude/skills/` | `~/.claude/agents/*.md` sub-agents |
+| Claude Code | **`output-styles/loops-within-loops.md` → `~/.claude/output-styles/`** (an output style edits the system prompt; `CLAUDE.md` is soft context and does not reliably drive the discipline) | `~/.claude/skills/` or `.claude/skills/` | `~/.claude/agents/*.md` sub-agents |
 | Codex / any `AGENTS.md` host | `AGENTS.md` (repo) or `~/.codex/AGENTS.md` | clone kept readable + `export AISKILLS_HOME=<clone>` | paste an agent body as a profile prompt |
 | Cursor / Windsurf | `.cursorrules` / `.windsurfrules` / custom-instructions panel | clone beside the workspace + `AISKILLS_HOME` | agent body as a custom mode |
 | Kiro | a steering file (`.kiro/steering/*.md`, "always") | clone in/near the workspace + `AISKILLS_HOME` | agent body as a steering-scoped role |
@@ -139,7 +139,7 @@ so `export AISKILLS_HOME=<clone>` is all a non-Claude host needs.
 ```bash
 # 1. Brain — as an OUTPUT STYLE (edits the system prompt; this is the slot that works)
 mkdir -p ~/.claude/output-styles
-cp hosts/claude-code-output-style.md ~/.claude/output-styles/loops-within-loops.md
+cp output-styles/loops-within-loops.md ~/.claude/output-styles/loops-within-loops.md
 #   then, inside Claude Code:  /output-style Loops Within Loops
 
 # 2. Skills — loaded on demand for depth, and they power the sub-agents

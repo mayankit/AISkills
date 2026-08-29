@@ -34,7 +34,7 @@ SETTINGS="$CLAUDE_DIR/settings.json"
 CLAUDE_MD="$CLAUDE_DIR/CLAUDE.md"
 STYLE_NAME="Loops Within Loops"
 STYLE_DST="$STYLES_DIR/loops-within-loops.md"
-STYLE_SRC="$REPO/hosts/claude-code-output-style.md"
+STYLE_SRC="$REPO/output-styles/loops-within-loops.md"
 
 say() { printf '%s\n' "$*"; }
 run() { printf '  + %s\n' "$*"; [ "$DRY" -eq 1 ] || eval "$*"; }
