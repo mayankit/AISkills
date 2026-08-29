@@ -1,5 +1,5 @@
-# Runtime learning / ledger state — per-user, never committed (see skills/session-control,
-# skills/continuous-learning, skills/agentic-loops).
+# Runtime learning / ledger state — per-user, never committed (see skills/aiskills-session-control,
+# skills/aiskills-continuous-learning, skills/aiskills-agentic-loops).
 .agentic-loops/
 
 # OS / editor cruft

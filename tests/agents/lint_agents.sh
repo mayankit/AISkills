@@ -3,7 +3,7 @@
 #
 # These are static checks on the prompt text itself: does each agent.md actually
 # commit to the behaviors its description promises? This catches spec drift
-# (e.g. someone edits code-reviewer.agent.md and quietly drops "writes no code")
+# (e.g. someone edits aiskills-code-reviewer.agent.md and quietly drops "writes no code")
 # without needing to call a model.
 #
 # Exit 0 = every agent passed every one of its required assertions.
@@ -39,9 +39,9 @@ forbid() {
   fi
 }
 
-echo "== builder-dev =="
-F=agents/builder-dev.agent.md
-require "$F" 'build-discipline'                          "loads build-discipline (the TDD spine)"
+echo "== aiskills-builder-dev =="
+F=agents/aiskills-builder-dev.agent.md
+require "$F" 'aiskills-build-discipline'                          "loads aiskills-build-discipline (the TDD spine)"
 require "$F" 'PLAN'                                       "commits to emitting a PLAN tree"
 require "$F" 'currently-failing test|failing test'        "commits to the named-failing-test coding gate"
 require "$F" 'RED'                                        "names the RED phase"
@@ -51,8 +51,8 @@ require "$F" 'VERIFY'                                       "names the VERIFY ph
 require "$F" 'two-strike'                                   "commits to the two-strike rule"
 
 echo
-echo "== code-reviewer =="
-F=agents/code-reviewer.agent.md
+echo "== aiskills-code-reviewer =="
+F=agents/aiskills-code-reviewer.agent.md
 require "$F" 'writes NO code|writes no code'                "explicitly commits to writing no code"
 require "$F" 'Blocker'                                       "defines a Blocker severity"
 require "$F" 'Major'                                          "defines a Major severity"
@@ -63,8 +63,8 @@ require "$F" 'file[s]?/line|file/line'                             "commits to f
 forbid  "$F" 'you (may|should|can) (edit|modify|write) (the )?(file|code|implementation)' "does not authorize editing files from inside a review"
 
 echo
-echo "== incident-investigator =="
-F=agents/incident-investigator.agent.md
+echo "== aiskills-incident-investigator =="
+F=agents/aiskills-incident-investigator.agent.md
 require "$F" 'Mitigate first|mitigate first'                  "commits to the mitigate-first doctrine"
 require "$F" 'blast radius'                                     "commits to scoping the blast radius"
 require "$F" 'root.?cause'                                        "commits to root-cause analysis"
@@ -73,8 +73,8 @@ require "$F" 'blameless'                                             "commits to
 require "$F" 'guard'                                                  "commits to leaving a guard (test/alarm) against recurrence"
 
 echo
-echo "== architect =="
-F=agents/architect.agent.md
+echo "== aiskills-architect =="
+F=agents/aiskills-architect.agent.md
 require "$F" 'ADR'                                                     "commits to recording ADRs"
 require "$F" 'decisions, contracts'                                      "states its deliverables are decisions/contracts"
 require "$F" 'never build|do not build|you do not build'                  "explicitly commits to not building"
@@ -86,7 +86,7 @@ echo
 echo "== all agents: shared contract =="
 for f in agents/*.agent.md; do
   require "$f" 'loop-contract\.md'    "$(basename "$f"): defers to brain/loop-contract.md"
-  require "$f" 'agentic-loops'        "$(basename "$f"): loads agentic-loops as a first action"
+  require "$f" 'aiskills-agentic-loops'        "$(basename "$f"): loads aiskills-agentic-loops as a first action"
 done
 
 echo

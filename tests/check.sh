@@ -22,10 +22,10 @@ say_fail() { fail=$((fail+1)); echo "FAIL: $1"; }
 # ---------------------------------------------------------------------------
 # 1. Structure — every required top-level part exists
 # ---------------------------------------------------------------------------
-for p in brain/loop-contract.md skills/agentic-loops/SKILL.md \
-         skills/agentic-loops/scripts/loop-status.sh \
-         skills/agentic-loops/scripts/fanout-check.sh \
-         skills/build-discipline/SKILL.md README.md; do
+for p in brain/loop-contract.md skills/aiskills-agentic-loops/SKILL.md \
+         skills/aiskills-agentic-loops/scripts/loop-status.sh \
+         skills/aiskills-agentic-loops/scripts/fanout-check.sh \
+         skills/aiskills-build-discipline/SKILL.md README.md; do
   if [ -e "$p" ]; then say_pass "structure: $p exists"; else say_fail "structure: $p is missing"; fi
 done
 
@@ -42,16 +42,16 @@ for dir in skills/*/; do
 done
 
 # ---------------------------------------------------------------------------
-# 3. Every skills/<name>/ has a routing row in skill-routing
+# 3. Every skills/<name>/ has a routing row in aiskills-skill-routing
 # ---------------------------------------------------------------------------
-routing="skills/skill-routing/SKILL.md"
+routing="skills/aiskills-skill-routing/SKILL.md"
 for dir in skills/*/; do
   name="$(basename "$dir")"
-  [ "$name" = "skill-routing" ] && continue
+  [ "$name" = "aiskills-skill-routing" ] && continue
   if grep -q "\`$name\`" "$routing"; then
-    say_pass "routing: $name referenced in skill-routing/SKILL.md"
+    say_pass "routing: $name referenced in aiskills-skill-routing/SKILL.md"
   else
-    say_fail "routing: $name is orphaned — no reference in skill-routing/SKILL.md"
+    say_fail "routing: $name is orphaned — no reference in aiskills-skill-routing/SKILL.md"
   fi
 done
 
@@ -79,9 +79,9 @@ fi
 # 6. Enforcement content — the non-negotiable phrases must survive verbatim
 # ---------------------------------------------------------------------------
 # portable across bash 3.2 (macOS default) and bash 4+: no associative arrays
-must_contain_pairs="skills/build-discipline/SKILL.md|Can I name the currently-failing test
-skills/agentic-loops/SKILL.md|two-strike
-skills/doubt-driven-development/SKILL.md|CLAIM"
+must_contain_pairs="skills/aiskills-build-discipline/SKILL.md|Can I name the currently-failing test
+skills/aiskills-agentic-loops/SKILL.md|two-strike
+skills/aiskills-doubt-driven-development/SKILL.md|CLAIM"
 while IFS='|' read -r f needle; do
   [ -z "$f" ] && continue
   if [ -f "$f" ] && grep -qi "$needle" "$f"; then
@@ -94,19 +94,19 @@ done <<< "$must_contain_pairs"
 # ---------------------------------------------------------------------------
 # 7. Behavioral — the ledger scripts are syntactically valid and self-consistent
 # ---------------------------------------------------------------------------
-for s in skills/agentic-loops/scripts/loop-status.sh skills/agentic-loops/scripts/fanout-check.sh; do
+for s in skills/aiskills-agentic-loops/scripts/loop-status.sh skills/aiskills-agentic-loops/scripts/fanout-check.sh; do
   if bash -n "$s" 2>/dev/null; then say_pass "behavioral: $s passes bash -n"; else say_fail "behavioral: $s has a syntax error"; fi
 done
 
-if [ -x skills/agentic-loops/scripts/fanout-check.sh ] || [ -f skills/agentic-loops/scripts/fanout-check.sh ]; then
+if [ -x skills/aiskills-agentic-loops/scripts/fanout-check.sh ] || [ -f skills/aiskills-agentic-loops/scripts/fanout-check.sh ]; then
   tmp_ws="$(mktemp -d)"
-  out="$(AGENT_WS_ROOT="$tmp_ws" bash skills/agentic-loops/scripts/fanout-check.sh 3 2>&1)"
+  out="$(AGENT_WS_ROOT="$tmp_ws" bash skills/aiskills-agentic-loops/scripts/fanout-check.sh 3 2>&1)"
   if echo "$out" | grep -q "FAN-OUT REQUIRED"; then
     say_pass "behavioral: fanout-check.sh 3 -> FAN-OUT REQUIRED"
   else
     say_fail "behavioral: fanout-check.sh 3 did not return FAN-OUT REQUIRED (got: $out)"
   fi
-  out="$(AGENT_WS_ROOT="$tmp_ws" bash skills/agentic-loops/scripts/fanout-check.sh 1 2>&1)"
+  out="$(AGENT_WS_ROOT="$tmp_ws" bash skills/aiskills-agentic-loops/scripts/fanout-check.sh 1 2>&1)"
   if echo "$out" | grep -q "SINGLE PIECE"; then
     say_pass "behavioral: fanout-check.sh 1 -> SINGLE PIECE"
   else
@@ -120,15 +120,15 @@ if [ -x skills/agentic-loops/scripts/fanout-check.sh ] || [ -f skills/agentic-lo
   rm -rf "$tmp_ws"
 fi
 
-if [ -f skills/agentic-loops/scripts/loop-status.sh ]; then
+if [ -f skills/aiskills-agentic-loops/scripts/loop-status.sh ]; then
   tmp_ws="$(mktemp -d)"
-  out="$(AGENT_WS_ROOT="$tmp_ws" bash skills/agentic-loops/scripts/loop-status.sh L1 "test line" 2>&1)"
+  out="$(AGENT_WS_ROOT="$tmp_ws" bash skills/aiskills-agentic-loops/scripts/loop-status.sh L1 "test line" 2>&1)"
   if echo "$out" | grep -q "L1"; then
     say_pass "behavioral: loop-status.sh L1 emits an L1 line"
   else
     say_fail "behavioral: loop-status.sh L1 did not emit an L1 line (got: $out)"
   fi
-  if AGENT_WS_ROOT="$tmp_ws" bash skills/agentic-loops/scripts/loop-status.sh check >/dev/null 2>&1; then
+  if AGENT_WS_ROOT="$tmp_ws" bash skills/aiskills-agentic-loops/scripts/loop-status.sh check >/dev/null 2>&1; then
     :
   fi
   rc=$?

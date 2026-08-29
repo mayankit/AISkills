@@ -26,12 +26,12 @@ The loop mechanics live in one file; every domain skill just plugs into them.
 | Part | File(s) | Role |
 |---|---|---|
 | **BRAIN** | `brain/loop-contract.md` | The single, always-on activation authority. Classifies every incoming task (the Task Graph), decides which loop graph and which skills apply, and carries the seven non-negotiable rules that hold across every graph. Small on purpose — everything else loads on demand. |
-| **SPINE** | `skills/build-discipline/SKILL.md` | The delivery procedure for any code edit: Phase 0 (locate the real target, identify the real verification gate, build a Convention Checklist) → RED → GREEN → REFACTOR → VERIFY → Definition of Done. The coding gate — *"can I name the currently-failing test this code is about to make pass?"* — fires before every implementation write, no exceptions. |
-| **LEDGER** | `skills/agentic-loops/scripts/{loop-status.sh,fanout-check.sh}` | Every plan tree and status line is validated and appended, ISO-timestamped, to `<workspace-root>/.agentic-loops/loop-ledger.md`, resolved outside any git repo so it's never accidentally committed. Malformed lines are rejected — the validator *is* the discipline, not a suggestion layered on top of one. |
+| **SPINE** | `skills/aiskills-build-discipline/SKILL.md` | The delivery procedure for any code edit: Phase 0 (locate the real target, identify the real verification gate, build a Convention Checklist) → RED → GREEN → REFACTOR → VERIFY → Definition of Done. The coding gate — *"can I name the currently-failing test this code is about to make pass?"* — fires before every implementation write, no exceptions. |
+| **LEDGER** | `skills/aiskills-agentic-loops/scripts/{loop-status.sh,fanout-check.sh}` | Every plan tree and status line is validated and appended, ISO-timestamped, to `<workspace-root>/.agentic-loops/loop-ledger.md`, resolved outside any git repo so it's never accidentally committed. Malformed lines are rejected — the validator *is* the discipline, not a suggestion layered on top of one. |
 
 The loop **grammar** itself — the taxonomy (L0 Convention-Model, L1 Context, L2 Self-Correct,
 L3 Fan-Out, L4 Refinement), OODA iteration, status-line format, the plan tree, the two-strike
-rule, same-turn parallel fan-out — lives in exactly one place: `skills/agentic-loops/SKILL.md`.
+rule, same-turn parallel fan-out — lives in exactly one place: `skills/aiskills-agentic-loops/SKILL.md`.
 Every other skill declares a one-line `Loop subgraph` in that grammar instead of restating any
 of it; loading a skill mid-task splices its subgraph into whatever loop is already open.
 
@@ -40,39 +40,39 @@ ALWAYS-ON        brain/loop-contract.md
 (BRAIN)          Task Graph (task type → loop graph, which skills to load)
                  7 non-negotiable rules · picks the root graph, defers "how" to —
 
-GRAMMAR          skills/agentic-loops/SKILL.md
+GRAMMAR          skills/aiskills-agentic-loops/SKILL.md
 (single owner)   OODA · loop catalog · plan tree · status lines · two-strike rule
                  loop-status.sh + fanout-check.sh → LEDGER at
                  <workspace-root>/.agentic-loops/loop-ledger.md
                        every other skill splices its Loop subgraph in here —
 
-SPINE            skills/build-discipline/SKILL.md
+SPINE            skills/aiskills-build-discipline/SKILL.md
 (Build graph)    Phase 0 → RED → GREEN → REFACTOR → VERIFY
                  coding gate · anti-rationalization table · Definition of Done
 ```
 
 ## The 16 skills
 
-Loaded on demand, routed by task type (see `skill-routing` for the full intent → skill table).
+Loaded on demand, routed by task type (see `aiskills-skill-routing` for the full intent → skill table).
 
 | Skill | What it governs |
 |---|---|
-| `agentic-loops` | The grammar itself — OODA, the loop catalog, plan trees, status lines, fan-out, the ledger scripts |
-| `build-discipline` | The TDD spine — Phase 0, RED/GREEN/REFACTOR/VERIFY, coding standards, Definition of Done |
-| `design` | Problem-first pattern selection (YAGNI-gated), and recording Architecture Decision Records |
-| `api-design` | REST/GraphQL/RPC contracts: versioning, pagination, idempotency, backward compatibility |
-| `doubt-driven-development` | The `DOUBT` splice — CLAIM → EXTRACT → DOUBT → RECONCILE → STOP for high-stakes changes |
-| `code-review` | Seven-dimension review methodology, severity-classified findings, context-widening first |
-| `security-review` | The security lens — injection, auth/authz, secrets, dependency risk, infra & operations |
-| `debugging-recovery` | Five-step triage — reproduce → localize → reduce → fix → guard |
-| `performance-tuning` | Measure-first optimization — baseline → profile → fix the bottleneck → verify |
-| `observability` | Golden Signals, structured logging, alarms with runbooks, dashboards designed as code |
-| `multi-agent-patterns` | Contract-first decomposition, same-turn parallel dispatch, the orchestrated join |
-| `incident-investigation` | Triage → Scope → Mitigate first → Hypothesize → Verify with timeline evidence → Guard |
-| `session-control` | Distill-then-drop, context budgets, structured handoffs and a resume protocol |
-| `continuous-learning` | Session lessons → gitignored local overlay; validated lessons graduate via a promotion gate |
-| `capability-creation` | The self-extension path — propose a new skill/agent on a recurring gap, build it with full discipline |
-| `skill-routing` | The intent → skill index — "how does the agent know when to use what?" |
+| `aiskills-agentic-loops` | The grammar itself — OODA, the loop catalog, plan trees, status lines, fan-out, the ledger scripts |
+| `aiskills-build-discipline` | The TDD spine — Phase 0, RED/GREEN/REFACTOR/VERIFY, coding standards, Definition of Done |
+| `aiskills-design` | Problem-first pattern selection (YAGNI-gated), and recording Architecture Decision Records |
+| `aiskills-api-design` | REST/GraphQL/RPC contracts: versioning, pagination, idempotency, backward compatibility |
+| `aiskills-doubt-driven-development` | The `DOUBT` splice — CLAIM → EXTRACT → DOUBT → RECONCILE → STOP for high-stakes changes |
+| `aiskills-code-review` | Seven-dimension review methodology, severity-classified findings, context-widening first |
+| `aiskills-security-review` | The security lens — injection, auth/authz, secrets, dependency risk, infra & operations |
+| `aiskills-debugging-recovery` | Five-step triage — reproduce → localize → reduce → fix → guard |
+| `aiskills-performance-tuning` | Measure-first optimization — baseline → profile → fix the bottleneck → verify |
+| `aiskills-observability` | Golden Signals, structured logging, alarms with runbooks, dashboards designed as code |
+| `aiskills-multi-agent-patterns` | Contract-first decomposition, same-turn parallel dispatch, the orchestrated join |
+| `aiskills-incident-investigation` | Triage → Scope → Mitigate first → Hypothesize → Verify with timeline evidence → Guard |
+| `aiskills-session-control` | Distill-then-drop, context budgets, structured handoffs and a resume protocol |
+| `aiskills-continuous-learning` | Session lessons → gitignored local overlay; validated lessons graduate via a promotion gate |
+| `aiskills-capability-creation` | The self-extension path — propose a new skill/agent on a recurring gap, build it with full discipline |
+| `aiskills-skill-routing` | The intent → skill index — "how does the agent know when to use what?" |
 
 ## The 4 agents
 
@@ -82,12 +82,12 @@ none of them restate the loop grammar or the build spine, they just point at the
 
 | Agent | Use it for | Loads |
 |---|---|---|
-| `builder-dev` | The default engineer: build features, fix bugs, refactor — full TDD spine, closed loop to a verified done | `build-discipline`, `design`, `doubt-driven-development`, `debugging-recovery`, `code-review`, `session-control`, `continuous-learning` |
-| `code-reviewer` | Read-only PR/diff review with visible per-dimension passes and severities; never writes code | `code-review`, `security-review`, `doubt-driven-development` |
-| `incident-investigator` | Live production incidents: mitigate first, hypothesis-driven root cause, structured verification and a blameless review | `incident-investigation`, `observability`, `debugging-recovery` |
-| `architect` | Shaping before building: pattern selection, API contracts, trade-offs, ADRs — hands off to the spine rather than writing implementation | `design`, `api-design`, `performance-tuning`, `observability`, `multi-agent-patterns` |
+| `aiskills-builder-dev` | The default engineer: build features, fix bugs, refactor — full TDD spine, closed loop to a verified done | `aiskills-build-discipline`, `aiskills-design`, `aiskills-doubt-driven-development`, `aiskills-debugging-recovery`, `aiskills-code-review`, `aiskills-session-control`, `aiskills-continuous-learning` |
+| `aiskills-code-reviewer` | Read-only PR/diff review with visible per-dimension passes and severities; never writes code | `aiskills-code-review`, `aiskills-security-review`, `aiskills-doubt-driven-development` |
+| `aiskills-incident-investigator` | Live production incidents: mitigate first, hypothesis-driven root cause, structured verification and a blameless review | `aiskills-incident-investigation`, `aiskills-observability`, `aiskills-debugging-recovery` |
+| `aiskills-architect` | Shaping before building: pattern selection, API contracts, trade-offs, ADRs — hands off to the spine rather than writing implementation | `aiskills-design`, `aiskills-api-design`, `aiskills-performance-tuning`, `aiskills-observability`, `aiskills-multi-agent-patterns` |
 
-All four load `agentic-loops` as their first action and treat `brain/loop-contract.md` as their
+All four load `aiskills-agentic-loops` as their first action and treat `brain/loop-contract.md` as their
 always-on contract.
 
 ## Install — how to wire this into different tools
@@ -186,33 +186,33 @@ it verifies.
 ## Layout
 
 ```
-brain/loop-contract.md                # BRAIN — always-on activation authority
+brain/loop-contract.md                       # BRAIN — always-on activation authority
 skills/
-  agentic-loops/
-    SKILL.md                          # GRAMMAR — loops, OODA, stops, plan tree, fan-out
-    scripts/loop-status.sh            # LEDGER — validated status-line writer + auditor
-    scripts/fanout-check.sh           # LEDGER — recorded fan-out decisions
-  build-discipline/SKILL.md           # SPINE — Phase 0 → RED → GREEN → REFACTOR → VERIFY
-  skill-routing/SKILL.md              # intent → skill index (when to use what)
-  design/ · api-design/ · doubt-driven-development/ · code-review/ · security-review/
-  debugging-recovery/ · performance-tuning/ · observability/ · multi-agent-patterns/
-  incident-investigation/ · session-control/ · continuous-learning/ · capability-creation/
-                                       # one SKILL.md each — the supporting disciplines
+  aiskills-agentic-loops/
+    SKILL.md                                 # GRAMMAR — loops, OODA, stops, plan tree, fan-out
+    scripts/loop-status.sh                   # LEDGER — validated status-line writer + auditor
+    scripts/fanout-check.sh                  # LEDGER — recorded fan-out decisions
+  aiskills-build-discipline/SKILL.md         # SPINE — Phase 0 → RED → GREEN → REFACTOR → VERIFY
+  aiskills-skill-routing/SKILL.md            # intent → skill index (when to use what)
+  aiskills-design/ · aiskills-api-design/ · aiskills-doubt-driven-development/ · aiskills-code-review/ · aiskills-security-review/
+  aiskills-debugging-recovery/ · aiskills-performance-tuning/ · aiskills-observability/ · aiskills-multi-agent-patterns/
+  aiskills-incident-investigation/ · aiskills-session-control/ · aiskills-continuous-learning/ · aiskills-capability-creation/
+                                            # one SKILL.md each — the supporting disciplines
 agents/
-  builder-dev.agent.md                # default engineer (Build graph)
-  code-reviewer.agent.md              # read-only review (Review graph)
-  incident-investigator.agent.md      # production incidents (Investigate graph)
-  architect.agent.md                  # shaping + ADRs (Design graph)
+  aiskills-builder-dev.agent.md             # default engineer (Build graph)
+  aiskills-code-reviewer.agent.md           # read-only review (Review graph)
+  aiskills-incident-investigator.agent.md   # production incidents (Investigate graph)
+  aiskills-architect.agent.md               # shaping + ADRs (Design graph)
 tests/
-  check.sh                            # the package's own structural/behavioral gate
-  agents/lint_agents.sh               # do the agent specs commit to their own descriptions?
+  check.sh                                  # the package's own structural/behavioral gate
+  agents/lint_agents.sh                     # do the agent specs commit to their own descriptions?
 ```
 
 ## Extending
 
 Add a new skill as `skills/<name>/SKILL.md` with `name:` and `description:` frontmatter, and if
-it participates in loops, a one-line `Loop subgraph` written in the `agentic-loops` grammar —
-it has exactly one owner and is never restated. Add the new skill's row to `skill-routing` so
+it participates in loops, a one-line `Loop subgraph` written in the `aiskills-agentic-loops` grammar —
+it has exactly one owner and is never restated. Add the new skill's row to `aiskills-skill-routing` so
 it's actually reachable. This package practices what it preaches: `tests/check.sh` enforces
 that every skill file has a routing row and that the enforcement-critical phrases survive
 verbatim — write the failing check first, watch it fail, then write the skill.
