@@ -1,8 +1,8 @@
 {
   "$schema": "https://anthropic.com/claude-code/plugin.schema.json",
   "name": "aiskills",
-  "displayName": "AISkills — Brain · Spine · Ledger",
-  "version": "0.1.0",
+  "displayName": "AISkills \u2014 Brain \u00b7 Spine \u00b7 Ledger",
+  "version": "0.2.0",
   "description": "A host-agnostic agent-discipline layer: an always-on BRAIN (loop contract), a build SPINE (TDD gate), a LEDGER (auditable loop trail), 16 aiskills-* skills, and 4 role agents. Plan-first, verify-before-done, leave a real trail.",
   "author": {
     "name": "Mayank Mittal",

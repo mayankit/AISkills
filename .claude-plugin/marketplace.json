@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "aiskills",
-  "description": "The AISkills discipline layer for coding agents — an always-on BRAIN, a build SPINE, and an auditable LEDGER, plus 16 skills and 4 role agents. Single-plugin marketplace.",
+  "description": "The AISkills discipline layer for coding agents \u2014 an always-on BRAIN, a build SPINE, and an auditable LEDGER, plus 16 skills and 4 role agents. Single-plugin marketplace.",
   "owner": {
     "name": "Mayank Mittal",
     "url": "https://github.com/mayankit/AISkills"
@@ -11,7 +11,7 @@
       "name": "aiskills",
       "source": "./",
       "description": "Brain/Spine/Ledger discipline layer: plan-first with a task-graph PLAN tree, test-first with a named-failing-test gate, and an auditable loop ledger. Ships the loop-discipline output style (auto-applied when enabled), 16 aiskills-* skills, and 4 role agents.",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "author": {
         "name": "Mayank Mittal"
       },
