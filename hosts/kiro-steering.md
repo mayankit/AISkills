@@ -130,10 +130,15 @@ printf '%s  %s\n' "$(date -u +%FT%TZ)" '◆ L2 Build [queue-core] · open · ite
 
 - **Heartbeat cadence.** A `◆` line goes out **every iteration**, mid-loop included — naming the
   loop, the OODA phase and the iteration (`◆ L2 Build [x] · iter 3 · ACT · stop:tests-green ·
-  re-running the suite after the null-guard fix`). In a long loop, refresh on the shorter of
-  every 3 iterations or ~1 minute of wall-clock work, and re-emit the `◇ PLAN` tree on that
-  same beat. Never run several tool calls with no `◆` line between them — a watcher must always
-  be able to see which loop is live, its phase, and its iteration without asking.
+  re-running the suite after the null-guard fix`; `iter N` has a space). In a long loop, refresh
+  on the shorter of every 3 iterations or ~1 minute of wall-clock work, and re-emit the
+  `◇ PLAN` tree on that same beat. Never run several tool calls with no `◆` line between them —
+  a watcher must always be able to see which loop is live, its phase, and its iteration.
+- **Append to the ledger as each line happens** when a shell exists — a `printf … >> "$LEDGER"`
+  per iteration, not one batch at the end (a ledger whose lines all share one timestamp was
+  written after the fact and doesn't count). Plain text in the reply is the fallback only when
+  there is no shell. A task that feels small is not an exception — anything multi-step gets the
+  plan tree and the ledger; only a genuinely trivial single-step task skips both.
 - `◇` opens a PLAN block; `◆` prefixes every status line; `— <Level> [<piece>] — ABANDONED · reason: <why>` marks a dropped loop.
 - On a failed iteration the note says *why* ("test failed: overlapping jobs not handled", then "same root cause") — not just a strike count.
 - On CLOSE the note says how `stop:` was met. Close with `◆ STOP: DONE — <one-line summary of what each piece did>`.

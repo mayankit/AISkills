@@ -360,6 +360,10 @@ for f in "$BRAIN" "$GRAMMAR" "$OS" "$KIRO"; do
   claim_check "heartbeat/ooda-state"      "$f" "OODA phase"
   claim_check "heartbeat/cadence"         "$f" "3 iteration" "minute"
   claim_check "heartbeat/no-silent-batch" "$f" "tool calls with no" "◆"
+  claim_check "heartbeat/iter-token"      "$f" "iter N"
+  # the ledger is written incrementally, and "small task" is not an excuse to skip it
+  claim_check "ledger/append-incrementally" "$f" "written after the fact"
+  claim_check "ledger/no-small-task-skip"   "$f" "trivial single-step task"
 done
 # the example status line shows loop · phase · iter — grammar + both adapters
 for f in "$GRAMMAR" "$OS" "$KIRO"; do

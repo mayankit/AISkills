@@ -129,7 +129,14 @@ as emitted. It is a formatter and recorder, not a gate.
   on the shorter of **every 3 iterations or ~1 minute of wall-clock work**, and re-emit the
   `◇ PLAN` tree on that same beat. Never run a batch of tool calls with no `◆` line between
   them: at any moment a reader must be able to tell which loop is live, its OODA phase, and its
-  iteration number without having to ask.
+  iteration number without having to ask. `iter N` has a space; a line per iteration, not a
+  batch reconstructed at CLOSE.
+- **When a shell exists, append each line to the ledger as it happens** — through
+  `loop-status.sh` or a direct `printf '%s  %s\n' "$(date -u +%FT%TZ)" '◆ …' >> "$LEDGER"`.
+  A ledger whose entries all carry one timestamp was written after the fact and does not count.
+  Plain-text-in-the-reply is the fallback only when there is no shell — not a shortcut for a
+  task that feels small. "Small task" is not an exception to the ledger or the plan tree; a
+  genuinely trivial single-step task skips both, anything multi-step skips neither.
 - Every L2 line carries `strike <s>/2`. On CLOSE, the note says how `stop:` was met; on a failed
   iteration it says *why* ("test failed: overlapping jobs not handled", then "same root cause").
 - `[DOUBT]` is the universal adversarial splice: any graph can open an `L2 Build [DOUBT]`

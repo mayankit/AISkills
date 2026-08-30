@@ -92,15 +92,21 @@ These seven hold across every graph in the table above, regardless of which skil
 2. **Signal position continuously — a heartbeat every iteration.** Every loop open, close, and
    DONE gets one status line, and so does **every OODA iteration in between**: a `◆` line
    naming the loop, the phase, and the iteration number (`◆ L2 Build [x] · iter 3 · ACT ·
-   stop:… · <what this pass is doing>`), even when nothing opened or closed. Inside a
+   stop:… · <what this pass is doing>`), even when nothing opened or closed. `iter N` has a
+   space; batched status lines are not a substitute for per-iteration ones. Inside a
    long-running loop, refresh on the shorter of every ~3 iterations or roughly a minute of
    work, and re-emit the `◇ PLAN` tree on that same beat.
    Never run a batch of tool calls with no `◆` line between them — a watcher must be able to
    tell, at any moment, which loop is live, its OODA phase, and its iteration without asking.
-   Lines are recorded via the ledger
-   script (`aiskills-agentic-loops`'s `loop-status.sh`) when a shell exists, or emitted as the
-   identical plain-text line when it doesn't. A task with no visible status lines and no ledger
-   entries has left the discipline even if the underlying work is fine.
+   **When a shell exists, the ledger file is written — appended to as each line happens, not
+   reconstructed at the end.** A ledger whose entries all share one timestamp
+   was written after the fact and does not count. Lines go through the ledger script
+   (`aiskills-agentic-loops`'s `loop-status.sh`), or a direct timestamped append, whenever a
+   shell is available; the identical plain-text line in the reply is the fallback **only** when
+   there is no shell. A task that feels small is not an exception to the ledger or the plan
+   tree — the only thing that skips both is a genuinely trivial single-step task (see rule 1).
+   A multi-step task with no visible status lines and no ledger entries has left the discipline
+   even if the underlying work is fine.
 3. **Every open loop names its stop condition up front**, chosen from exactly five:
    `DONE`, `BLOCKED-EXTERNAL` (needs something outside the agent's control), `BLOCKED-AMBIGUOUS`
    (needs a human decision), `NO-PROGRESS` (repeated attempts aren't converging), or `BUDGET`

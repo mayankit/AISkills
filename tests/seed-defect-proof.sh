@@ -63,6 +63,9 @@ seed_md 'ooda/four-phases.*kiro-steering'          hosts/kiro-steering.md       
 seed_md 'plan-before-first-tool-call.*loop-contract' brain/loop-contract.md           's/the first tool call/the first action/g'          'plan-first: "the first tool call" removed from brain'
 seed_md 'five-stop-conditions.*agentic-loops'      skills/aiskills-agentic-loops/SKILL.md 's/BUDGET/LIMIT/g'                              'stop-conditions: "BUDGET" removed from grammar'
 seed_md 'two-strike.*loop-contract'                brain/loop-contract.md             's/strike/hit/g'                                    'two-strike rule removed from brain'
+seed_md 'heartbeat/iter-token.*kiro-steering'      hosts/kiro-steering.md             's/iter N/iteration count/g'                        'heartbeat: "iter N" token spec dropped from Kiro adapter'
+seed_md 'ledger/append-incrementally.*agentic-loops' skills/aiskills-agentic-loops/SKILL.md 's/written after the fact/logged whenever/g'    'ledger: incremental-append rule removed from grammar'
+seed_md 'ledger/no-small-task-skip.*loop-contract' brain/loop-contract.md             's/trivial single-step task/tiny job/g'             'ledger: "small task is no excuse" removed from brain'
 
 echo
 echo "== section 8: adapter phrase-sync =="
