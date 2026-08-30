@@ -222,7 +222,8 @@ while IFS='|' read -r adapter fmkey; do
     'DONE' 'BLOCKED-EXTERNAL' 'BLOCKED-AMBIGUOUS' 'NO-PROGRESS' 'BUDGET' \
     '◇ PLAN' '◆ ' '.agentic-loops/loop-ledger.md' \
     'L0 Convention' 'L1 Context' 'L2 Build' 'L3 Fan-Out' 'L4 Refinement' \
-    'currently-failing test' 'Two strikes' 'ORIENT' 'OBSERVE'; do
+    'currently-failing test' 'Two strikes' 'ORIENT' 'OBSERVE' \
+    'heartbeat' 'every iteration'; do
     grep -qF "$phrase" "$adapter" || miss="$miss '$phrase'"
   done
   [ -z "$miss" ] && say_pass "adapter $base: retains every load-bearing phrase" \

@@ -89,11 +89,17 @@ These seven hold across every graph in the table above, regardless of which skil
    once "it turns out to be complicated." A trivial single-step task can skip it; anything else
    can't. The tree's format (indentation, per-line `stop:<condition>`, glyphs) is defined once,
    in `aiskills-agentic-loops` — never redefined per skill.
-2. **Signal position, don't just narrate it.** Every loop open, close, and DONE gets one status
-   line — recorded via the ledger script (`aiskills-agentic-loops`'s `loop-status.sh`) when a
-   shell exists, or emitted as the identical plain-text line when it doesn't. A task with no
-   visible status lines and no ledger entries has left the discipline even if the underlying
-   work is fine.
+2. **Signal position continuously — a heartbeat every iteration.** Every loop open, close, and
+   DONE gets one status line, and so does **every OODA iteration in between**: a `◆` line
+   naming the loop, the phase, and the iteration number (`◆ L2 Build [x] · iter 3 · ACT ·
+   stop:… · <what this pass is doing>`), even when nothing opened or closed. Inside a
+   long-running loop, refresh on the shorter of every ~3 iterations or roughly a minute of
+   work, and re-emit the `◇ PLAN` tree on that same beat. Never run a batch of tool calls with
+   no `◆` line between them — a watcher must be able to tell, at any moment, which loop is
+   live, its OODA phase, and its iteration without asking. Lines are recorded via the ledger
+   script (`aiskills-agentic-loops`'s `loop-status.sh`) when a shell exists, or emitted as the
+   identical plain-text line when it doesn't. A task with no visible status lines and no ledger
+   entries has left the discipline even if the underlying work is fine.
 3. **Every open loop names its stop condition up front**, chosen from exactly five:
    `DONE`, `BLOCKED-EXTERNAL` (needs something outside the agent's control), `BLOCKED-AMBIGUOUS`
    (needs a human decision), `NO-PROGRESS` (repeated attempts aren't converging), or `BUDGET`
