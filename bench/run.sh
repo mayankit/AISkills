@@ -51,8 +51,15 @@ run_one() {  # run_one <taskdir> <taskname> <arm> <i>
   ( cd "$work" && claude -p "$(cat "$tdir/PROMPT.txt")" --model "$MODEL" \
         --output-format stream-json --verbose \
         --dangerously-skip-permissions --add-dir "$work" \
-        ${extra[@]+"${extra[@]}"} \
+        ${extra[@]+"${extra[@]}"} </dev/null \
   ) > "$dst/stream.jsonl" 2> "$dst/stderr.txt" || true
+
+  # abort the whole run if the account hit its usage limit — otherwise every
+  # remaining run records a bogus 0-token error row.
+  if grep -q '"rateLimitType"\|hit your monthly spend limit\|"error":"rate_limit"' "$dst/stream.jsonl"; then
+    echo "  !! rate limit hit — aborting the run. Re-run after it resets." | tee -a "$OUT/WARNINGS.txt"
+    rm -rf "$work"; return 3
+  fi
 
   python3 - "$dst/stream.jsonl" > "$dst/transcript.txt" <<'PY'
 import json, sys
@@ -89,60 +96,85 @@ PY
 
   bash "$REPO/bench/rubric.sh" "$dst" > "$dst/score.tsv"
   s="$(awk -F'\t' '/^score/{print $2}' "$dst/score.tsv")"
-  c="$(python3 -c 'import json;print(json.load(open("'"$dst/meta.json"'")).get("cost_usd") or 0)')"
-  printf '%s\t%s\t%s\t%s\t%s\n' "$tname" "$arm" "$i" "$s" "$c" >> "$OUT/summary.tsv"
-  echo "  [$tname/$arm #$i] $s  \$$c"
+  local err cost
+  read -r err cost < <(python3 -c 'import json;d=json.load(open("'"$dst/meta.json"'"));print(int(bool(d.get("is_error"))), d.get("cost_usd") or 0)')
+  printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$tname" "$arm" "$i" "$s" "$cost" "$err" >> "$OUT/summary.tsv"
+  echo "  [$tname/$arm #$i] $s  \$$cost$([ "$err" = 1 ] && echo '  (ERROR)')"
 }
 
 : > "$OUT/summary.tsv"
+PACE="${BENCH_PACE:-20}"   # seconds between runs — headless coding runs are token-heavy
+abort=0
 for tdir in "${TASKS[@]}"; do
+  [ "$abort" = 1 ] && break
   tname="$(basename "$tdir")"
   echo "### $tname — phase 1: baseline (plugin disabled)"
   [ "$have_plugin" = 1 ] && claude plugin disable "$PLUGIN" >/dev/null 2>&1
-  for i in $(seq 1 "$N"); do run_one "$tdir" "$tname" baseline "$i"; done
+  for i in $(seq 1 "$N"); do
+    run_one "$tdir" "$tname" baseline "$i" || { [ $? = 3 ] && abort=1 && break; }
+    sleep "$PACE"
+  done
+  [ "$abort" = 1 ] && break
   echo "### $tname — phase 2: skills (plugin enabled + discipline appended)"
   [ "$have_plugin" = 1 ] && claude plugin enable "$PLUGIN" >/dev/null 2>&1
-  for i in $(seq 1 "$N"); do run_one "$tdir" "$tname" skills "$i"; done
+  for i in $(seq 1 "$N"); do
+    run_one "$tdir" "$tname" skills "$i" || { [ $? = 3 ] && abort=1 && break; }
+    sleep "$PACE"
+  done
 done
+[ "$abort" = 1 ] && echo "RUN ABORTED (rate limit) — partial results below; re-run when the limit resets."
 
 echo
 echo "==================== $OUT ===================="
 python3 - "$OUT/summary.tsv" "$OUT" <<'PY'
 import sys, collections, glob, os, json
 rows = [l.rstrip("\n").split('\t') for l in open(sys.argv[1]) if l.strip()]
-agg = collections.defaultdict(list)
-for tname, arm, i, score, cost in rows:
-    n, m = score.split('/'); agg[(tname, arm)].append((int(n), int(m), float(cost)))
-tasks = sorted({t for t, _ in agg})
-print(f"{'task':<10}{'arm':<10}{'runs':>5}{'avg score':>13}{'avg $':>9}   scores")
+# columns: task arm i score cost is_error   (is_error may be absent in old files)
+ok = collections.defaultdict(list); errs = collections.Counter()
+for r in rows:
+    tname, arm, i, score = r[:4]
+    cost = float(r[4]) if len(r) > 4 else 0.0
+    is_err = (len(r) > 5 and r[5] == "1")
+    n, m = score.split('/')
+    if is_err: errs[(tname, arm)] += 1
+    else:      ok[(tname, arm)].append((int(n), int(m), cost, os.path.join(sys.argv[2], tname, arm, i)))
+tasks = sorted({t for t, _ in ok} | {t for t, _ in errs})
+print(f"{'task':<8}{'arm':<10}{'ok':>4}{'err':>5}{'avg score':>12}{'avg $':>9}   scores")
 for t in tasks:
     for arm in ("baseline", "skills"):
-        v = agg.get((t, arm)) or []
-        if not v: continue
-        m = v[0][1]
-        print(f"{t:<10}{arm:<10}{len(v):>5}{sum(n for n,_,_ in v)/len(v):>9.2f}/{m:<3}"
-              f"{sum(c for *_,c in v)/len(v):>9.3f}   {[n for n,_,_ in v]}")
-# per-criterion means, per task
+        v = ok.get((t, arm)) or []; e = errs.get((t, arm), 0)
+        if not v and not e: continue
+        if v:
+            m = v[0][1]
+            print(f"{t:<8}{arm:<10}{len(v):>4}{e:>5}{sum(n for n,*_ in v)/len(v):>8.2f}/{m:<3}"
+                  f"{sum(c for _,_,c,_ in v)/len(v):>9.3f}   {[n for n,*_ in v]}")
+        else:
+            print(f"{t:<8}{arm:<10}{0:>4}{e:>5}{'--':>12}{'--':>9}   (all errored)")
+# per-criterion means over OK runs only
 crit = collections.defaultdict(lambda: collections.defaultdict(list))
-for f in glob.glob(os.path.join(sys.argv[2], "*", "*", "*", "score.tsv")):
-    parts = f.split(os.sep); tname, arm = parts[-4], parts[-3]
-    for line in open(f):
-        if '\t' not in line or line.startswith("score"): continue
-        k, val = line.strip().split('\t'); crit[(tname, k)][arm].append(int(val))
+for (t, arm), v in ok.items():
+    for *_ , dpath in v:
+        sp = os.path.join(dpath, "score.tsv")
+        if not os.path.exists(sp): continue
+        for line in open(sp):
+            if '\t' not in line or line.startswith("score"): continue
+            k, val = line.strip().split('\t'); crit[(t, k)][arm].append(int(val))
 last_t = None
-for (tname, k), d in crit.items():
-    if tname != last_t:
-        print(f"\n[{tname}] {'criterion':<34}{'baseline':>10}{'skills':>9}"); last_t = tname
-    b = d.get('baseline', [0]); s = d.get('skills', [0])
-    print(f"         {k:<34}{sum(b)/len(b):>10.2f}{sum(s)/len(s):>9.2f}")
-# cost/time
+for (t, k), d in crit.items():
+    if t != last_t:
+        print(f"\n[{t}] {'criterion':<34}{'baseline':>10}{'skills':>9}"); last_t = t
+    b = d.get('baseline'); s = d.get('skills')
+    bs = f"{sum(b)/len(b):.2f}" if b else "--"; ss = f"{sum(s)/len(s):.2f}" if s else "--"
+    print(f"        {k:<34}{bs:>10}{ss:>9}")
 def avg(t, arm, key):
-    xs = [json.load(open(f)).get(key) or 0
-          for f in glob.glob(os.path.join(sys.argv[2], t, arm, "*", "meta.json"))]
+    xs = []
+    for _,_,_,dp in ok.get((t, arm), []):
+        try: xs.append(json.load(open(os.path.join(dp, "meta.json"))).get(key) or 0)
+        except Exception: pass
     return sum(xs)/len(xs) if xs else 0
 print()
 for t in tasks:
     for key, lbl in (("cost_usd","$"), ("duration_ms","ms"), ("num_turns","turns")):
-        print(f"[{t}] avg {lbl:<6} baseline {avg(t,'baseline',key):>10.3f}   skills {avg(t,'skills',key):>10.3f}")
+        print(f"[{t}] avg {lbl:<6} baseline {avg(t,'baseline',key):>10.2f}   skills {avg(t,'skills',key):>10.2f}")
 PY
 [ -f "$OUT/WARNINGS.txt" ] && { echo; echo "WARNINGS:"; cat "$OUT/WARNINGS.txt"; }
