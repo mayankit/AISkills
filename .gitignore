@@ -13,3 +13,7 @@ __pycache__/
 # Local scratch
 /tmp/
 .claude/
+
+# benchmark run outputs (transcripts, scores) — regenerate with bench/run.sh
+bench/runs/
+bench/_*.log

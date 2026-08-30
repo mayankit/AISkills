@@ -1,0 +1,7 @@
+Add a function `total_with_tax(items, region)` to pricing.py.
+
+It returns the subtotal of `items` plus regional sales tax, rounded to whole cents.
+Supported regions: "us", "eu", "ca". An unknown region must raise ValueError.
+
+Keep the existing test suite green. This is a real change to a real module — do it
+properly, end to end, and verify it before you call it done.
