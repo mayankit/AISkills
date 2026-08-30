@@ -1,10 +1,12 @@
 # AISkills — Brain · Spine · Ledger
 
 A portable, host-agnostic discipline layer that turns any capable, tool-using coding agent
-(Claude Code, Codex, Cursor, Windsurf, or a custom agent you built yourself) into a
-closed-loop engineer: one that plans before acting, verifies before declaring done, and leaves
-a real, auditable trail of what it actually did. No proprietary tooling, no hosted service —
-plain markdown, bash, and git.
+(Claude Code, OpenAI Codex, Kiro, Cursor, Windsurf, GitHub Copilot, or a custom agent you
+built yourself) into a closed-loop engineer: one that plans before acting, verifies before
+declaring done, and leaves a real, auditable trail of what it actually did. No proprietary
+tooling, no hosted service — plain markdown, bash, and git. The content is byte-for-byte
+identical on every host; only the one-line *mount* differs, and this README gives you that
+line for each tool.
 
 This package is the reference implementation of the architecture described in
 **[An AI Agent Architecture](https://medium.com/@mayank.mittal.cool/an-ai-agent-architecture-b3870125456e)**.
@@ -94,32 +96,41 @@ always-on contract.
 
 ## Install
 
-### Best mount per host
+### The model — three things, on every host
 
-The brain/skills/agents text is **identical on every host**. What differs is the *mount point*
-— the strongest standing-instruction slot the host offers, the one that actually makes the
-model follow the discipline rather than merely see it.
+| # | What | Where it goes |
+|---|---|---|
+| 1 | **BRAIN** — `brain/loop-contract.md`, always in context | the host's *strongest* standing-instruction slot (below) |
+| 2 | **SKILLS** — the `skills/` folder, readable on demand | anywhere the agent can read files; pointed to by `AISKILLS_HOME` |
+| 3 | **AGENTS** *(optional)* — the 4 role prompts in `agents/` | wherever the host keeps custom roles / sub-agents / modes |
 
-| Host | Strongest mount | How to install it | Activate command |
+Nothing here is Claude-specific. Pick your host below, run the block, then confirm with
+[**"What 'it's working' looks like"**](#what-its-working-looks-like-any-host).
+
+| Host | Strongest mount | Install | Activate |
 |---|---|---|---|
-| **Claude Code** | Output style (edits the system prompt). Shipped by the plugin as `force-for-plugin`. `CLAUDE.md` is soft context — fallback only. | `/plugin marketplace add mayankit/AISkills` then `/plugin install aiskills@aiskills` | **automatic** on plugin enable |
-| **Claude Code** (no plugin) | Same output style, copied to `~/.claude/output-styles/` | `git clone https://github.com/mayankit/AISkills && cd AISkills && ./install.sh` | `install.sh` sets `outputStyle` in `settings.json`; start a new session (or `/config` → Output style → **Loops Within Loops**) |
-| **Codex / any `AGENTS.md` host** | `AGENTS.md` (repo) or `~/.codex/AGENTS.md` — Codex has no separate user-editable system-prompt file, so `AGENTS.md` *is* the strongest persistent slot | `cat "$AISKILLS_HOME/brain/loop-contract.md" >> AGENTS.md` | loaded every turn `AGENTS.md` is read; `export AISKILLS_HOME=<clone>` for skills |
-| **Kiro** | Steering file, front-matter `inclusion: always` (strongest slot Kiro has; the discipline is reported to work well here) | `cp hosts/kiro-steering.md .kiro/steering/loops-within-loops.md` | always-on once saved |
-| **Cursor** | Project Rules `.cursor/rules/*.mdc` (type **Always**) or legacy `.cursorrules` | paste `brain/loop-contract.md` into the rule | always-on rule; `export AISKILLS_HOME=<clone>` for skills |
-| **Windsurf** | `.windsurf/rules/*.md` (activation **Always On**) or legacy `.windsurfrules` | paste `brain/loop-contract.md` into the rule | always-on rule; `export AISKILLS_HOME=<clone>` for skills |
-| **Generic / any other** | whatever standing-context slot it has (system prompt, instructions field) | put `brain/loop-contract.md` there; make `skills/` readable | always-on |
+| **Claude Code** | Plugin → output style (edits the system prompt). `CLAUDE.md` is soft context — fallback only. | `/plugin marketplace add mayankit/AISkills` → `/plugin install aiskills@aiskills` | **automatic** when the plugin is enabled |
+| **Claude Code** (no plugin) | Same output style, copied into `~/.claude/` | `git clone … && ./install.sh` | `install.sh` sets `outputStyle` in `settings.json` |
+| **OpenAI Codex** (CLI / IDE) | `AGENTS.md` — repo root, or `~/.codex/AGENTS.md` for every project. Codex has no separate user-editable system prompt, so `AGENTS.md` *is* the top slot. | `cat brain/loop-contract.md >> AGENTS.md` + `export AISKILLS_HOME=<clone>` | every turn `AGENTS.md` is read |
+| **Kiro** | Steering file, front-matter `inclusion: always` (Kiro's strongest slot; the discipline is reported to work well here) | `cp hosts/kiro-steering.md .kiro/steering/loops-within-loops.md` + `export AISKILLS_HOME=<clone>` | always-on once the file is saved |
+| **Cursor** | Project Rule `.cursor/rules/aiskills.mdc`, rule type **Always** (or legacy `.cursorrules`) | paste `brain/loop-contract.md` into the rule + `export AISKILLS_HOME=<clone>` | always-on rule |
+| **Windsurf** | `.windsurf/rules/aiskills.md`, activation **Always On** (or legacy `.windsurfrules`) | paste `brain/loop-contract.md` into the rule + `export AISKILLS_HOME=<clone>` | always-on rule |
+| **GitHub Copilot** | `.github/copilot-instructions.md` | paste `brain/loop-contract.md` + keep the repo readable | loaded with the workspace |
+| **Any other agent** | whatever standing-context slot it has (system prompt, instructions field) | put `brain/loop-contract.md` there; make `skills/` readable | always-on |
 
-`export AISKILLS_HOME=<clone>` is all a non-Claude host needs — the brain's bootstrap resolves
-the skills across `$AISKILLS_HOME/skills` → `~/.claude/skills` → `./.claude/skills` → `./skills`
-(first hit wins). Without a shell the discipline still holds: the agent emits the same
-`◇`/`◆` lines as plain text instead of piping them through `loop-status.sh`.
+**Adapter files.** Two hosts have no skill loader, so they get a *self-contained* file that
+restates the brain + essential grammar inline: Claude Code
+([`output-styles/loops-within-loops.md`](output-styles/loops-within-loops.md), shipped by the
+plugin) and Kiro ([`hosts/kiro-steering.md`](hosts/kiro-steering.md)). Every other host reads
+the real `skills/` on demand, so the plain `brain/loop-contract.md` paste is enough. Full
+per-host notes and the adapter-sync rule: [`hosts/README.md`](hosts/README.md).
 
-Only two hosts need a ready-made **adapter file** (a self-contained restatement of the brain +
-essential grammar, for a host with no skill loader): Claude Code
-(`output-styles/loops-within-loops.md`) and Kiro (`hosts/kiro-steering.md`). Everywhere else
-the plain `brain/loop-contract.md` paste plus `AISKILLS_HOME` is enough. See
-[`hosts/README.md`](hosts/README.md) for the full per-host wiring and the adapter sync rule.
+`export AISKILLS_HOME=<clone>` is all a non-Claude host needs for the skills — the brain's
+bootstrap resolves them across `$AISKILLS_HOME/skills` → `~/.claude/skills` →
+`./.claude/skills` → `./skills` (first hit wins). No shell? The discipline still holds — the
+agent emits the same `◇`/`◆` lines as plain text instead of piping them through `loop-status.sh`.
+
+---
 
 ### Claude Code — the plugin (recommended)
 
@@ -128,36 +139,35 @@ the plain `brain/loop-contract.md` paste plus `AISKILLS_HOME` is enough. See
 /plugin install aiskills@aiskills
 ```
 
-The plugin *is* this repository (`.claude-plugin/plugin.json` +
-`.claude-plugin/marketplace.json` at the root). It ships all 16 `aiskills-*` skills, the 4
-agents, and the **Loops Within Loops** output style. Because that style is marked
-`force-for-plugin: true`, enabling the plugin applies the loop discipline to the main thread
-**automatically** — there is no `/output-style` step (the standalone `/output-style` command
-was removed in Claude Code v2.1.91; the manual fallback is `/config` → Output style).
+Then start a **new** session. That's the whole install.
 
-Start a new session and ask for a real task (`build X, test-first`) — you should see a
-`◇ PLAN` tree before the first tool call, `◆` status lines per loop transition, and a ledger
-at `<first-non-repo-parent>/.agentic-loops/loop-ledger.md`. Disable with
-`/plugin disable aiskills@aiskills`.
+- The plugin **is** this repository (`.claude-plugin/plugin.json` +
+  `.claude-plugin/marketplace.json` at the root). It ships all 16 `aiskills-*` skills, the 4
+  agents, and the **Loops Within Loops** output style.
+- The output style is marked `force-for-plugin: true`, so enabling the plugin applies the loop
+  discipline to the main thread **automatically — there is no manual step.** (The standalone
+  `/output-style` command was removed in Claude Code v2.1.91; if you ever need to toggle it by
+  hand, use `/config` → Output style.)
+- Update: `/plugin update aiskills@aiskills`. Disable: `/plugin disable aiskills@aiskills`.
+- `claude plugin validate --strict` passes on both manifests; `claude plugin install` from a
+  local clone lists **16 skills + 4 agents** in `claude plugin details`.
 
-`claude plugin validate --strict` passes on both `.claude-plugin/plugin.json` and
-`.claude-plugin/marketplace.json`; `tests/check.sh` re-runs that whenever the CLI is present.
+### Claude Code — without the plugin (`install.sh`)
 
-### Claude Code — `install.sh` (non-plugin)
-
-For a Claude Code setup without the plugin (or to see exactly what the plugin wires):
+For a non-plugin setup, or to see exactly what the plugin wires:
 
 ```bash
 git clone https://github.com/mayankit/AISkills && cd AISkills
-./install.sh                 # copies skills + agents + the output style from this repo,
+./install.sh                 # copies skills + agents + the output style into ~/.claude/,
                              # then sets "outputStyle": "Loops Within Loops" in settings.json
-./install.sh --dry-run       # show exactly what it would do
-./install.sh --no-activate   # install the files, don't touch settings.json
-./install.sh --uninstall     # remove everything it installed (backups left as *.aiskills-bak)
+./install.sh --dry-run       # print every step, change nothing
+./install.sh --no-activate   # copy the files, don't touch settings.json
+./install.sh --uninstall     # remove everything it installed (*.aiskills-bak backups kept)
 ```
 
 `install.sh` honours `$CLAUDE_CONFIG_DIR`, is safe to re-run, and needs only `bash` + `python3`
-(the latter just for the one `settings.json` key — skip it with `--no-activate`). By hand it is:
+(the latter only for the one `settings.json` key — skip it with `--no-activate`). The same by
+hand:
 
 ```bash
 mkdir -p ~/.claude/output-styles ~/.claude/skills ~/.claude/agents
@@ -167,49 +177,118 @@ cp agents/aiskills-*.md ~/.claude/agents/
 #   then, inside Claude Code:  /config → Output style → Loops Within Loops
 ```
 
-`CLAUDE.md` is soft context and the output style supersedes it; `install.sh` removes any older
-aiSkills brain block it finds in `~/.claude/CLAUDE.md`.
+`CLAUDE.md` is soft context and the output style supersedes it; `install.sh` strips any older
+aiSkills brain block from `~/.claude/CLAUDE.md`.
 
-### Codex / any `AGENTS.md`-reading host
+### OpenAI Codex (CLI or IDE) — any `AGENTS.md` host
 
 ```bash
-git clone https://github.com/mayankit/AISkills aiSkills && export AISKILLS_HOME="$PWD/aiSkills"
-cat "$AISKILLS_HOME/brain/loop-contract.md" >> AGENTS.md   # repo-level, or ~/.codex/AGENTS.md
-# Skills need no copying — the brain's resolution order finds them under $AISKILLS_HOME/skills.
-# Agents (optional) — paste an agents/aiskills-<name>.md body as a profile's system prompt.
+git clone https://github.com/mayankit/AISkills aiskills
+export AISKILLS_HOME="$PWD/aiskills"                 # add this to your shell profile
+
+# 1 — BRAIN: append the contract to the AGENTS.md your project actually loads
+cat "$AISKILLS_HOME/brain/loop-contract.md" >> AGENTS.md
+#     …or ~/.codex/AGENTS.md to get it in every project
+
+# 2 — SKILLS: nothing to copy. The brain's bootstrap finds them under $AISKILLS_HOME/skills.
+# 3 — AGENTS (optional): paste an agents/aiskills-<name>.md body as a Codex profile / custom prompt.
 ```
 
-### Cursor / Windsurf / Kiro / other IDE agents
+Codex reads `AGENTS.md` on every turn, so the brain is always in context. Confirm with the
+signals below.
 
-1. **Brain** — Kiro: `cp hosts/kiro-steering.md .kiro/steering/loops-within-loops.md` (it is
-   self-contained, front-matter `inclusion: always`). Cursor/Windsurf/others: paste
-   `brain/loop-contract.md` into the tool's always-on rules slot.
-2. **Skills** — keep this repo cloned in or beside the workspace and
-   `export AISKILLS_HOME=<clone>`; the brain's resolution order does the rest.
-3. **Agents** — use each `agents/aiskills-<name>.md` body as a custom mode / role prompt.
-
-### Per-project setup (recommended, any host)
+### Kiro
 
 ```bash
-# Keep the ledger and local overlays out of your repos, and pin the ledger root explicitly:
+git clone https://github.com/mayankit/AISkills aiskills
+export AISKILLS_HOME="$PWD/aiskills"                 # add this to your shell profile
+
+# 1 — BRAIN: the steering adapter is self-contained (front-matter `inclusion: always`)
+mkdir -p .kiro/steering
+cp "$AISKILLS_HOME/hosts/kiro-steering.md" .kiro/steering/loops-within-loops.md
+
+# 2 — SKILLS (optional, for depth): readable via $AISKILLS_HOME/skills once the env var is set.
+# 3 — AGENTS (optional): use an agents/aiskills-<name>.md body as a steering-scoped role.
+```
+
+Kiro prepends every `inclusion: always` steering file to each turn — this is its strongest
+slot, and the discipline is reported to hold well here.
+
+### Cursor
+
+```bash
+git clone https://github.com/mayankit/AISkills aiskills
+export AISKILLS_HOME="$PWD/aiskills"
+
+mkdir -p .cursor/rules
+cp "$AISKILLS_HOME/brain/loop-contract.md" .cursor/rules/aiskills.mdc
+#   then set that rule's type to "Always" in Cursor's Rules UI
+#   (legacy alternative: paste the same text into .cursorrules)
+```
+
+Cursor can read any workspace file, so the plain brain paste plus `AISKILLS_HOME` reaches the
+full `skills/` — no adapter needed.
+
+### Windsurf
+
+```bash
+git clone https://github.com/mayankit/AISkills aiskills
+export AISKILLS_HOME="$PWD/aiskills"
+
+mkdir -p .windsurf/rules
+cp "$AISKILLS_HOME/brain/loop-contract.md" .windsurf/rules/aiskills.md
+#   then set that rule's activation to "Always On" in Windsurf
+#   (legacy alternative: paste the same text into .windsurfrules)
+```
+
+### Any other agent (minimum viable wiring)
+
+Any host that can (a) keep one file always in context and (b) read files on demand can run
+this:
+
+1. Put the contents of `brain/loop-contract.md` in the host's standing-instructions slot.
+2. Keep this repo cloned somewhere readable and `export AISKILLS_HOME=<clone>` (or clone it as
+   `./skills` next to your work).
+3. Skip the agent roles if the host has no custom-profile mechanism — brain + skills alone
+   hold the discipline.
+
+### What "it's working" looks like (any host)
+
+Give the agent a real task (`build X, test-first`). You should see, in order:
+
+- a **`◇ PLAN` tree** in the reply *before* the first tool call — one line per planned loop,
+  each with its own `stop:` condition;
+- **`◆` status lines** at every loop open / close / STOP (`◆ L2 Build [x] · open · … · stop:tests-green`);
+- on a build task, a **failing test written and run first**, before any implementation;
+- if a shell is available, a growing **ledger** at
+  `<first-non-repo-parent>/.agentic-loops/loop-ledger.md` (outside your repo, so it is never
+  committed).
+
+If you see the agent jump straight to editing code with no PLAN tree and no `◆` lines, the
+brain isn't in context — re-check step 1 for your host (for Claude Code, confirm the output
+style is active with `/config`).
+
+### Keep the ledger out of your repos (any host)
+
+```bash
 echo ".agentic-loops/" >> <workspace-root>/.gitignore   # if the workspace root is itself a repo
 export AGENT_WS_ROOT=<workspace-root>                    # optional; the scripts also auto-resolve it
 ```
 
 The ledger scripts climb out of any enclosing git work tree by default (the ledger must never
-live inside a repository, where it could be accidentally committed) and fall back to `$HOME`.
-Setting `AGENT_WS_ROOT` makes the root deterministic instead of inferred.
+live inside a repository) and fall back to `$HOME`. Setting `AGENT_WS_ROOT` makes the root
+deterministic instead of inferred.
 
 ### Verify the package itself
 
 ```bash
-bash tests/check.sh              # structural, portability, enforcement-content, behavioral checks
-bash tests/agents/lint_agents.sh  # do the 4 agent specs actually commit to what their descriptions promise?
+bash tests/check.sh               # structure, portability, enforcement phrases, plugin + marketplace + adapters
+bash tests/agents/lint_agents.sh  # do the 4 agent specs commit to what their descriptions promise?
 ```
 
-Exit 0 on both = every check passed. Run these after editing anything in this package — they're
-this repo's own CI gate: structure, cross-reference completeness, the enforcement-critical
-phrases, and the ledger scripts' actual behavior.
+Exit 0 on both = every check passed. `tests/check.sh` also runs `claude plugin validate
+--strict` on both manifests when the `claude` CLI is on `PATH` (and skips that cleanly when it
+isn't). Run both after editing anything in this package — they are this repo's CI gate.
 
 ## Layout
 
