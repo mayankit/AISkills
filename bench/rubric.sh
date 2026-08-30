@@ -62,32 +62,62 @@ crit reuses_tax_rates_table "$reuse_rates"
 # result shows a failure/error.
 test_first=0
 python3 - "$S" <<'PY' && test_first=1
-import json, sys
+import json, sys, os, re
+
 evs = [json.loads(l) for l in open(sys.argv[1]) if l.strip()]
-tu = []   # (idx, name, text-ish)
+
+def tool_uses():
+    for i, e in enumerate(evs):
+        if e.get("type") != "assistant":
+            continue
+        for b in e.get("message", {}).get("content", []):
+            if b.get("type") == "tool_use":
+                inp = b.get("input", {}) or {}
+                yield i, b.get("name", ""), inp
+
+def basename(inp):
+    fp = inp.get("file_path") or inp.get("path") or ""
+    return os.path.basename(fp)
+
+def blob(inp):
+    return json.dumps(inp)
+
+WRITE = ("Write", "Edit", "MultiEdit", "NotebookEdit")
+BIG = 10**9
+
+# first write to a *test* file that concerns total_with_tax
+test_write = BIG
+# first write to pricing.py itself (NOT test_pricing.py) that adds total_with_tax
+impl_write = BIG
+for i, name, inp in tool_uses():
+    if name not in WRITE:
+        continue
+    bn = basename(inp)
+    b = blob(inp)
+    if bn.startswith("test_") and bn.endswith(".py") and "total_with_tax" in b and i < test_write:
+        test_write = i
+    if bn == "pricing.py" and "total_with_tax" in b and i < impl_write:
+        impl_write = i
+
+# a pytest run that FAILED, strictly between the test write and the impl write
+FAILSIG = re.compile(
+    r"ERROR collecting|errors? during collection|=+ ERRORS? =+|"
+    r"=+ FAILURES? =+|ImportError|NameError|AttributeError|"
+    r"\b\d+ failed\b|\b\d+ error\b|short test summary info", re.I)
+fail_between = False
 for i, e in enumerate(evs):
-    if e.get("type") != "assistant": continue
+    if e.get("type") != "user" or not (test_write < i < impl_write):
+        continue
     for b in e.get("message", {}).get("content", []):
-        if b.get("type") == "tool_use":
-            tu.append((i, b.get("name",""), json.dumps(b.get("input",{}))))
-def first(pred):
-    for idx, name, inp in tu:
-        if pred(name, inp): return idx
-    return 10**9
-test_write = first(lambda n,i: n in ("Write","Edit","MultiEdit") and "test" in i.lower() and "total_with_tax" in i)
-impl_write = first(lambda n,i: n in ("Write","Edit","MultiEdit") and "pricing.py" in i and "total_with_tax" in i)
-# a failing pytest observed anywhere before impl_write
-fail_before = False
-for i, e in enumerate(evs):
-    if e.get("type") != "user": continue
-    for b in e.get("message", {}).get("content", []):
-        if not (isinstance(b, dict) and b.get("type") == "tool_result"): continue
-        c = b.get("content","")
-        if isinstance(c, list): c = " ".join(x.get("text","") for x in c if isinstance(x,dict))
-        c = str(c)
-        if any(k in c for k in ("failed","FAILED","Error","error","assert")) and i < impl_write:
-            fail_before = True
-sys.exit(0 if (test_write < impl_write and fail_before) else 1)
+        if not (isinstance(b, dict) and b.get("type") == "tool_result"):
+            continue
+        c = b.get("content", "")
+        if isinstance(c, list):
+            c = " ".join(x.get("text", "") for x in c if isinstance(x, dict))
+        if FAILSIG.search(str(c)):
+            fail_between = True
+
+sys.exit(0 if (test_write < impl_write and fail_between) else 1)
 PY
 crit test_written_and_failed_first "$test_first"
 

@@ -335,7 +335,26 @@ hosts/
 tests/
   check.sh                                  # structural/behavioral gate + plugin & marketplace & adapter checks
   agents/lint_agents.sh                     # do the agent specs commit to their own descriptions?
+  seed-defect-proof.sh                      # proves check.sh's claim/plugin checks actually fail when broken
+bench/
+  task/ · rubric.sh · run.sh · README.md    # with-aiSkills vs baseline A/B (see below)
 ```
+
+## Benchmark — with vs without
+
+`bench/` is a reproducible A/B: the same coding task given to headless `claude`
+twice, plugin enabled vs disabled, scored on 11 objective criteria (outcome +
+whether it worked test-first, ran the real gate, and left a ledger).
+
+```bash
+bash bench/run.sh 5      # 5 runs per arm; needs an authed claude CLI; ~$2-6
+```
+
+Checked-in numbers and the run log are in [`bench/RESULTS.md`](bench/RESULTS.md);
+[`bench/README.md`](bench/README.md) has the method and the caveats (small N, one
+task, headless ≠ interactive). Consistent with the article's own comparison, the
+`skills` arm costs more and takes longer, and picks up the diligence the baseline
+skips.
 
 ## Extending
 
