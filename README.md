@@ -282,13 +282,20 @@ deterministic instead of inferred.
 ### Verify the package itself
 
 ```bash
-bash tests/check.sh               # structure, portability, enforcement phrases, plugin + marketplace + adapters
+bash tests/check.sh               # structure, portability, enforcement phrases, discipline claims,
+                                  #   plugin + marketplace manifests, adapters
 bash tests/agents/lint_agents.sh  # do the 4 agent specs commit to what their descriptions promise?
+bash tests/seed-defect-proof.sh   # proves the checks above actually FAIL when a claim is broken
+                                  #   (seeds one deliberate defect per guarded check; ~1 min, needs the claude CLI
+                                  #   for the live plugin-install proofs). check.sh runs it too with RUN_SEED_PROOF=1.
 ```
 
-Exit 0 on both = every check passed. `tests/check.sh` also runs `claude plugin validate
---strict` on both manifests when the `claude` CLI is on `PATH` (and skips that cleanly when it
-isn't). Run both after editing anything in this package — they are this repo's CI gate.
+Exit 0 on all = every check passed. `tests/check.sh` also runs `claude plugin validate
+--strict` on both manifests **and a real `claude plugin install` into a throwaway config dir**
+(asserting Skills = 16, Agents = 4, Hooks = 0, and `force-for-plugin: true` on the shipped
+output style) when the `claude` CLI is on `PATH` — and skips those cleanly when it isn't.
+Everything runs against a temp directory; nothing touches your real `~/.claude`. Run all three
+after editing anything in this package — they are this repo's CI gate.
 
 ## Layout
 

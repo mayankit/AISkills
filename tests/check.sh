@@ -28,6 +28,7 @@ for p in brain/loop-contract.md skills/aiskills-agentic-loops/SKILL.md \
          skills/aiskills-build-discipline/SKILL.md README.md \
          install.sh output-styles/loops-within-loops.md \
          hosts/kiro-steering.md hosts/README.md \
+         tests/seed-defect-proof.sh \
          .claude-plugin/plugin.json .claude-plugin/marketplace.json; do
   if [ -e "$p" ]; then say_pass "structure: $p exists"; else say_fail "structure: $p is missing"; fi
 done
@@ -316,6 +317,138 @@ if command -v claude >/dev/null 2>&1; then
   done
 else
   say_pass "claude plugin validate: SKIPPED (no 'claude' CLI on PATH) — manifests still checked structurally above"
+fi
+
+# ---------------------------------------------------------------------------
+# 12. Discipline CLAIMS are actually stated where they must be — substance, not
+#     just a keyword. Each claim lists the files that must carry it and the
+#     substrings that together prove it is really there (all must match, in
+#     every listed file). This is what fails if someone edits the brain/grammar
+#     and forgets an adapter, or waters a rule down to a mention.
+# ---------------------------------------------------------------------------
+BRAIN=brain/loop-contract.md
+GRAMMAR=skills/aiskills-agentic-loops/SKILL.md
+OS=output-styles/loops-within-loops.md
+KIRO=hosts/kiro-steering.md
+
+# claim_check <label> <file> <needle>...
+#   Every needle must appear VERBATIM (grep -F, case-SENSITIVE) in the file.
+#   Needles are contiguous phrases, not loose words — "every iteration", not
+#   "every" + "iteration" — so watering a rule down to a passing mention, or
+#   dropping the phrase from one carrier, trips the check. Proven to fail:
+#   tests/seed-defect-proof.sh breaks one input per needle-class and confirms
+#   the matching FAIL fires.
+claim_check() {
+  _label="$1"; _file="$2"; shift 2
+  if [ ! -f "$_file" ]; then say_fail "claim [$_label]: $_file missing"; return; fi
+  _missing=""
+  for _n in "$@"; do
+    grep -qF -- "$_n" "$_file" || _missing="$_missing \"$_n\""
+  done
+  if [ -z "$_missing" ]; then
+    say_pass "claim [$_label]: $_file states it verbatim"
+  else
+    say_fail "claim [$_label]: $_file is missing —$_missing"
+  fi
+}
+
+# 12a — heartbeat: a status line EVERY ITERATION, naming the loop, the OODA
+#       PHASE/STATE, and the iteration number, on a named cadence, plus the
+#       no-silent-batch clause. In all four carriers, verbatim.
+for f in "$BRAIN" "$GRAMMAR" "$OS" "$KIRO"; do
+  claim_check "heartbeat/every-iteration" "$f" "every iteration"
+  claim_check "heartbeat/ooda-state"      "$f" "OODA phase"
+  claim_check "heartbeat/cadence"         "$f" "3 iteration" "minute"
+  claim_check "heartbeat/no-silent-batch" "$f" "tool calls with no" "◆"
+done
+# the example status line shows loop · phase · iter — grammar + both adapters
+for f in "$GRAMMAR" "$OS" "$KIRO"; do
+  claim_check "heartbeat/line-shape" "$f" "iter 3 · ACT"
+done
+# the OODA phase vocabulary is the full four words, spelled out (uppercase), in
+# every SELF-CONTAINED carrier (grammar + both adapters — never a bare "O").
+# The brain defers the full mechanics to the grammar, so it only has to
+# reference "OODA phase" (checked by heartbeat/ooda-state above).
+for f in "$GRAMMAR" "$OS" "$KIRO"; do
+  claim_check "ooda/four-phases" "$f" "ORIENT" "DECIDE" "ACT" "OBSERVE"
+done
+
+# 12b — the other load-bearing rules, verified verbatim in the brain AND the
+#       grammar (the adapters are covered by section 8's phrase list).
+for f in "$BRAIN" "$GRAMMAR"; do
+  claim_check "plan-before-first-tool-call" "$f" "the first tool call" "◇ PLAN"
+  claim_check "five-stop-conditions"        "$f" "DONE" "BLOCKED-EXTERNAL" "BLOCKED-AMBIGUOUS" "NO-PROGRESS" "BUDGET"
+  claim_check "two-strike"                  "$f" "strike"
+done
+
+# ---------------------------------------------------------------------------
+# 13. Plugin END TO END — actually install it into a throwaway config dir and
+#     inspect what Claude Code sees. This is the "it will work as a plugin"
+#     claim, tested for real. Runs only when the `claude` CLI is present.
+# ---------------------------------------------------------------------------
+# 13a — manifest/marketplace version agreement (structural, always runs;
+#       `claude plugin tag` enforces this and installs key off it).
+if [ -f "$PJ" ] && [ -f "$MP" ]; then
+  if python3 - "$PJ" "$MP" <<'PY'
+import json, sys
+pj = json.load(open(sys.argv[1])); mp = json.load(open(sys.argv[2]))
+entry = next((p for p in mp.get("plugins", []) if p.get("name") == "aiskills"), {})
+sys.exit(0 if pj.get("version") and pj.get("version") == entry.get("version") else 1)
+PY
+  then say_pass "plugin e2e: plugin.json version == marketplace entry version"
+  else say_fail "plugin e2e: plugin.json version and marketplace 'aiskills' entry version disagree (or missing)"
+  fi
+fi
+
+# 13b — real install into a sandbox config dir.
+if command -v claude >/dev/null 2>&1; then
+  ee_cfg="$(mktemp -d)"
+  ee_ok=1
+  CLAUDE_CONFIG_DIR="$ee_cfg" claude plugin marketplace add "$ROOT" >/dev/null 2>&1 || ee_ok=0
+  CLAUDE_CONFIG_DIR="$ee_cfg" claude plugin install aiskills@aiskills >/dev/null 2>&1 || ee_ok=0
+  if [ "$ee_ok" -eq 1 ]; then
+    say_pass "plugin e2e: marketplace add + install aiskills@aiskills succeeded in a clean config dir"
+    ee_det="$(CLAUDE_CONFIG_DIR="$ee_cfg" claude plugin details aiskills@aiskills 2>&1)"
+    echo "$ee_det" | grep -q "Skills (16)" && say_pass "plugin e2e: details reports Skills (16)" \
+                                           || say_fail "plugin e2e: details did NOT report Skills (16) — got: $(echo "$ee_det" | grep -i 'skills (' || true)"
+    echo "$ee_det" | grep -q "Agents (4)"  && say_pass "plugin e2e: details reports Agents (4)" \
+                                           || say_fail "plugin e2e: details did NOT report Agents (4) — got: $(echo "$ee_det" | grep -i 'agents (' || true)"
+    echo "$ee_det" | grep -q "Hooks (0)"   && say_pass "plugin e2e: details reports Hooks (0) — no hooks, as required" \
+                                           || say_fail "plugin e2e: details reports hooks — this package must ship none"
+    ee_cache="$(find "$ee_cfg/plugins/cache" -type f -path '*output-styles/loops-within-loops.md' 2>/dev/null | head -1)"
+    if [ -n "$ee_cache" ] && grep -q '^force-for-plugin: true$' "$ee_cache"; then
+      say_pass "plugin e2e: installed output style carries force-for-plugin: true (auto-activates)"
+    else
+      say_fail "plugin e2e: installed output style missing or lacks force-for-plugin: true"
+    fi
+  else
+    say_fail "plugin e2e: could not add the marketplace / install the plugin from $ROOT (run the two claude commands directly to see why)"
+  fi
+  rm -rf "$ee_cfg"
+else
+  say_pass "plugin e2e: SKIPPED live install (no 'claude' CLI on PATH) — version agreement still checked above"
+fi
+
+# ---------------------------------------------------------------------------
+# 14. The seed-defect proof harness is present and parses. It proves that
+#     sections 8-13 above actually FAIL when a claim is broken (the
+#     "can this check ever fail?" step). It is NOT run here by default — it
+#     does ~4 live `claude plugin install`s and takes ~1 min. Run it directly,
+#     or set RUN_SEED_PROOF=1.
+# ---------------------------------------------------------------------------
+if bash -n tests/seed-defect-proof.sh 2>/dev/null; then
+  say_pass "seed-defect-proof.sh: passes bash -n"
+else
+  say_fail "seed-defect-proof.sh: syntax error"
+fi
+if [ "${RUN_SEED_PROOF:-0}" = "1" ]; then
+  if bash tests/seed-defect-proof.sh >/tmp/seedproof.$$ 2>&1; then
+    say_pass "seed-defect-proof.sh: every guarded check is proven to fail on a seeded defect ($(grep -c '^PROVEN' /tmp/seedproof.$$) proven)"
+  else
+    say_fail "seed-defect-proof.sh: a guarded check did NOT catch its seeded defect — see below"
+    grep -E '^NOT CAUGHT|proven,' /tmp/seedproof.$$ | sed 's/^/    /'
+  fi
+  rm -f /tmp/seedproof.$$
 fi
 
 # ---------------------------------------------------------------------------

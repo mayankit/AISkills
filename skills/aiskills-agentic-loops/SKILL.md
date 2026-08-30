@@ -27,6 +27,12 @@ stop condition is met. The whole task is one OODA loop whose steps may open inne
 the fixed catalog below. The core mindset: keep going until the goal is actually done — never
 hand back "next steps" you had the tools to execute yourself.
 
+(Boyd's canonical OODA is **Observe → Orient → Decide → Act**. This is the same cycle rotated
+to start at ORIENT: because the loop is continuous, each iteration opens by re-orienting on
+the result of the previous iteration's OBSERVE. First-iteration ORIENT reads the initial task
+and repo state; there is nothing to "observe" before the first action. The phase *names* and
+their order in the status line — `ORIENT|DECIDE|ACT|OBSERVE` — are fixed regardless.)
+
 Report ONE four-phase block per iteration (never per tool call):
 
 ```

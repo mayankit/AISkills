@@ -94,9 +94,10 @@ These seven hold across every graph in the table above, regardless of which skil
    naming the loop, the phase, and the iteration number (`◆ L2 Build [x] · iter 3 · ACT ·
    stop:… · <what this pass is doing>`), even when nothing opened or closed. Inside a
    long-running loop, refresh on the shorter of every ~3 iterations or roughly a minute of
-   work, and re-emit the `◇ PLAN` tree on that same beat. Never run a batch of tool calls with
-   no `◆` line between them — a watcher must be able to tell, at any moment, which loop is
-   live, its OODA phase, and its iteration without asking. Lines are recorded via the ledger
+   work, and re-emit the `◇ PLAN` tree on that same beat.
+   Never run a batch of tool calls with no `◆` line between them — a watcher must be able to
+   tell, at any moment, which loop is live, its OODA phase, and its iteration without asking.
+   Lines are recorded via the ledger
    script (`aiskills-agentic-loops`'s `loop-status.sh`) when a shell exists, or emitted as the
    identical plain-text line when it doesn't. A task with no visible status lines and no ledger
    entries has left the discipline even if the underlying work is fine.
