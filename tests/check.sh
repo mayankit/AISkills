@@ -28,7 +28,7 @@ for p in brain/loop-contract.md skills/aiskills-agentic-loops/SKILL.md \
          skills/aiskills-build-discipline/SKILL.md README.md \
          install.sh output-styles/loops-within-loops.md \
          hosts/kiro-steering.md hosts/README.md \
-         tests/seed-defect-proof.sh \
+         tests/seed-defect-proof.sh commands/loop.md \
          .claude-plugin/plugin.json .claude-plugin/marketplace.json; do
   if [ -e "$p" ]; then say_pass "structure: $p exists"; else say_fail "structure: $p is missing"; fi
 done
@@ -53,6 +53,22 @@ for dir in skills/*/; do
   if [ -z "$(awk 'NR>1{ if($0=="---"){print NR; exit} }' "$f")" ]; then say_fail "skill $name: frontmatter block is never closed"; continue; fi
   if ! grep -q "^name: $name$" "$f"; then say_fail "skill $name: frontmatter name: doesn't match directory"; else say_pass "skill $name: name: matches directory"; fi
   if ! grep -q '^description:' "$f"; then say_fail "skill $name: frontmatter has no description:"; else say_pass "skill $name: has description:"; fi
+
+  # 2b — every skill declares how it plugs into the loop machinery, and carries
+  #      at least one concretely ACTIONABLE block (not pure exposition). This is
+  #      the structural floor for "this skill can actually change behaviour".
+  if grep -qiE '^\**Loop (stage|subgraph)\**:' "$f"; then
+    say_pass "skill $name: declares its Loop stage/subgraph"
+  else
+    say_fail "skill $name: no 'Loop stage:' or 'Loop subgraph:' line — state how it plugs into the grammar"
+  fi
+  if grep -qiE 'checklist|anti-pattern|red flag|pitfall' "$f" \
+     || grep -qE '^\| ' "$f" \
+     || { grep -qE '^1\. ' "$f" && grep -qE '^2\. ' "$f"; }; then
+    say_pass "skill $name: has an actionable block (checklist / anti-patterns / table / steps)"
+  else
+    say_fail "skill $name: no actionable block — a skill must give steps/checklist/table/anti-patterns, not just prose"
+  fi
 done
 
 # ---------------------------------------------------------------------------
@@ -261,7 +277,7 @@ else
       && say_pass "plugin: has $k" || say_fail "plugin: missing $k"
   done
   # components the plugin ships are discovered from these root dirs
-  for d in skills agents output-styles; do
+  for d in skills agents output-styles commands; do
     [ -d "$d" ] && say_pass "plugin: component dir $d/ exists" || say_fail "plugin: component dir $d/ missing"
   done
 fi
@@ -364,6 +380,8 @@ for f in "$BRAIN" "$GRAMMAR" "$OS" "$KIRO"; do
   # the ledger is written incrementally, and "small task" is not an excuse to skip it
   claim_check "ledger/append-incrementally" "$f" "written after the fact"
   claim_check "ledger/no-small-task-skip"   "$f" "trivial single-step task"
+  # the tax is proportional: compress ceremony on small tasks, never the gate
+  claim_check "ceremony/right-size"         "$f" "Right-size the ceremony" "skip RED or VERIFY"
 done
 # the example status line shows loop · phase · iter — grammar + both adapters
 for f in "$GRAMMAR" "$OS" "$KIRO"; do
@@ -413,10 +431,22 @@ if command -v claude >/dev/null 2>&1; then
   if [ "$ee_ok" -eq 1 ]; then
     say_pass "plugin e2e: marketplace add + install aiskills@aiskills succeeded in a clean config dir"
     ee_det="$(CLAUDE_CONFIG_DIR="$ee_cfg" claude plugin details aiskills@aiskills 2>&1)"
-    echo "$ee_det" | grep -q "Skills (16)" && say_pass "plugin e2e: details reports Skills (16)" \
-                                           || say_fail "plugin e2e: details did NOT report Skills (16) — got: $(echo "$ee_det" | grep -i 'skills (' || true)"
-    echo "$ee_det" | grep -q "Agents (4)"  && say_pass "plugin e2e: details reports Agents (4)" \
-                                           || say_fail "plugin e2e: details did NOT report Agents (4) — got: $(echo "$ee_det" | grep -i 'agents (' || true)"
+    # inventory by NAME, not by count — `claude plugin details` lumps commands
+    # into the Skills line, so the raw number moves when a command is added.
+    ee_missing=""
+    for _s in $(ls -d skills/aiskills-*/ | xargs -n1 basename); do
+      echo "$ee_det" | grep -q "$_s" || ee_missing="$ee_missing $_s"
+    done
+    echo "$ee_det" | grep -q '\bloop\b' || ee_missing="$ee_missing loop(command)"
+    [ -z "$ee_missing" ] && say_pass "plugin e2e: details lists all 16 aiskills-* skills + the loop command" \
+                         || say_fail "plugin e2e: details is missing:$ee_missing — got: $(echo "$ee_det" | grep -i 'skills (' || true)"
+    ee_amissing=""
+    for _a in $(ls agents/aiskills-*.md | xargs -n1 basename | sed 's/\.md$//'); do
+      echo "$ee_det" | grep -q "$_a" || ee_amissing="$ee_amissing $_a"
+    done
+    { echo "$ee_det" | grep -q "Agents (4)" && [ -z "$ee_amissing" ]; } \
+      && say_pass "plugin e2e: details reports Agents (4) with all 4 named" \
+      || say_fail "plugin e2e: agents inventory off — Agents(4)? missing:$ee_amissing — got: $(echo "$ee_det" | grep -i 'agents (' || true)"
     echo "$ee_det" | grep -q "Hooks (0)"   && say_pass "plugin e2e: details reports Hooks (0) — no hooks, as required" \
                                            || say_fail "plugin e2e: details reports hooks — this package must ship none"
     ee_cache="$(find "$ee_cfg/plugins/cache" -type f -path '*output-styles/loops-within-loops.md' 2>/dev/null | head -1)"

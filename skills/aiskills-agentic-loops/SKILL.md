@@ -175,6 +175,12 @@ the line where work is right now with `← here`. NOT an arrow chain, NOT a flat
 one-liner is fine for a trivial 1-2 loop task. Pure investigation with no unknown yet to
 forecast: say so, and let the graph emerge as loops open.
 
+**Right-size the ceremony, never the gate.** On a small, well-understood change the plan tree
+is one line, L0/L1 collapse into one quick pass, and L2 is two iterations — that is correct,
+not a shortcut. What never scales down with task size: a real failing test before the
+implementation, and the real verify command run in full. Compress the ceremony to fit the
+task; never skip RED or VERIFY to do it.
+
 ```
 TASK  Design a task scheduler in this repository          stop:end-to-end-tests-green
   ◇ PLAN v1: 5 pieces, 3 independent + 2 sequential

@@ -66,6 +66,7 @@ seed_md 'two-strike.*loop-contract'                brain/loop-contract.md       
 seed_md 'heartbeat/iter-token.*kiro-steering'      hosts/kiro-steering.md             's/iter N/iteration count/g'                        'heartbeat: "iter N" token spec dropped from Kiro adapter'
 seed_md 'ledger/append-incrementally.*agentic-loops' skills/aiskills-agentic-loops/SKILL.md 's/written after the fact/logged whenever/g'    'ledger: incremental-append rule removed from grammar'
 seed_md 'ledger/no-small-task-skip.*loop-contract' brain/loop-contract.md             's/trivial single-step task/tiny job/g'             'ledger: "small task is no excuse" removed from brain'
+seed_md 'ceremony/right-size.*loops-within-loops' output-styles/loops-within-loops.md 's/Right-size the ceremony/Do the ceremony/g'      'right-size-the-ceremony rule removed from the Claude Code adapter'
 
 echo
 echo "== section 8: adapter phrase-sync =="
@@ -95,22 +96,22 @@ seed_md 'plugin e2e: plugin.json version and marketplace' .claude-plugin/plugin.
 echo
 echo "== section 13b: live plugin install + inspect =="
 if [ "$have_claude" -eq 1 ]; then
-  # Skills (16): remove one skill dir -> details should report 15
+  # remove one skill dir -> details inventory should be missing that name
   cp -R skills/aiskills-observability "$SCRATCH/.__skill_bak"
   rm -rf skills/aiskills-observability
   out="$(run_check)"
-  if check_has_fail 'plugin e2e: details did NOT report Skills \(16\)' "$out"; then
-    ok 'plugin e2e: a removed skill is detected (Skills count check)'
-  else bad 'plugin e2e: Skills (16) count check' 'the details-count assertion'; fi
+  if check_has_fail 'plugin e2e: details is missing.*aiskills-observability' "$out"; then
+    ok 'plugin e2e: a removed skill is detected (name-based inventory check)'
+  else bad 'plugin e2e: skill inventory check' 'the details name check'; fi
   mv "$SCRATCH/.__skill_bak" skills/aiskills-observability
 
-  # Agents (4): remove one agent
+  # remove one agent -> details agents inventory should be off
   cp agents/aiskills-architect.md "$SCRATCH/.__agent_bak"
   rm -f agents/aiskills-architect.md
   out="$(run_check)"
-  if check_has_fail 'plugin e2e: details did NOT report Agents \(4\)' "$out"; then
-    ok 'plugin e2e: a removed agent is detected (Agents count check)'
-  else bad 'plugin e2e: Agents (4) count check' 'the details-count assertion'; fi
+  if check_has_fail 'plugin e2e: agents inventory off' "$out"; then
+    ok 'plugin e2e: a removed agent is detected (name-based inventory check)'
+  else bad 'plugin e2e: agent inventory check' 'the details name check'; fi
   mv "$SCRATCH/.__agent_bak" agents/aiskills-architect.md
 
   # force-for-plugin: flip it off

@@ -186,6 +186,11 @@ VERIFY runs the real commands (e.g. `npm test && npm run lint && npx tsc --noEmi
 root), reads the whole output, and only then closes with `◆ STOP: DONE`. Report the exact
 commands run and their results — never "looks right".
 
+**Right-size the ceremony, never the gate.** On a small, well-understood change the plan tree
+is one line, L0/L1 is one quick pass, and L2 is two iterations — that is correct, not a
+shortcut. RED (a real failing test first) and VERIFY (the real command, in full) do not scale
+down with task size. Compress the ceremony to fit the task; never skip RED or VERIFY.
+
 ---
 
 ## 7 · Interrupts — never drop the loop stack

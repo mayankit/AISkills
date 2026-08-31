@@ -129,3 +129,11 @@ These seven hold across every graph in the table above, regardless of which skil
 
 The Task Graph decides *which* loops apply; these seven decide how any loop, once open, is run
 honestly. Skills add domain detail on top of both — they never loosen either.
+
+**Right-size the ceremony, never the gate.** The structure is meant to be proportional. On a
+small, well-understood change the plan tree is one line, L0 and L1 collapse into a single quick
+pass (you already know the file), and L2 is two iterations, not six — and that is correct, not
+a shortcut. What does *not* scale down with task size is the gate: a real failing test before
+the implementation, and the real verify command run in full at the end, hold whether the diff
+is one line or one hundred. If the discipline feels like dead weight on a task, the fix is to
+compress the ceremony to match the task — not to skip RED or VERIFY.

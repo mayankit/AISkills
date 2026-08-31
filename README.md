@@ -143,14 +143,18 @@ Then start a **new** session. That's the whole install.
 
 - The plugin **is** this repository (`.claude-plugin/plugin.json` +
   `.claude-plugin/marketplace.json` at the root). It ships all 16 `aiskills-*` skills, the 4
-  agents, and the **Loops Within Loops** output style.
+  agents, the **Loops Within Loops** output style, and the `/aiskills:loop` command.
 - The output style is marked `force-for-plugin: true`, so enabling the plugin applies the loop
   discipline to the main thread **automatically — there is no manual step.** (The standalone
   `/output-style` command was removed in Claude Code v2.1.91; if you ever need to toggle it by
   hand, use `/config` → Output style.)
+- **`/aiskills:loop <task>`** is the opt-in entry point — run it on a specific task to get the
+  discipline applied deterministically (bootstrap the ledger, emit the plan tree first, then
+  closed loops with an incremental ledger and a real verify gate). Use it when you want the
+  structure guaranteed rather than relying on the always-on style.
 - Update: `/plugin update aiskills@aiskills`. Disable: `/plugin disable aiskills@aiskills`.
 - `claude plugin validate --strict` passes on both manifests; `claude plugin install` from a
-  local clone lists **16 skills + 4 agents** in `claude plugin details`.
+  local clone lists the 16 skills + the `loop` command + 4 agents in `claude plugin details`.
 
 ### Claude Code — without the plugin (`install.sh`)
 
@@ -321,6 +325,8 @@ agents/
   aiskills-code-reviewer.md                 # read-only review (Review graph)
   aiskills-incident-investigator.md         # production incidents (Investigate graph)
   aiskills-architect.md                     # shaping + ADRs (Design graph)
+commands/
+  loop.md                                  # /aiskills:loop — opt-in per-task discipline entry point
 output-styles/
   loops-within-loops.md                    # HOST ADAPTER (Claude Code) — brain+grammar as an output style; the plugin's activation path
 hosts/
