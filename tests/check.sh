@@ -431,14 +431,22 @@ if command -v claude >/dev/null 2>&1; then
   if [ "$ee_ok" -eq 1 ]; then
     say_pass "plugin e2e: marketplace add + install aiskills@aiskills succeeded in a clean config dir"
     ee_det="$(CLAUDE_CONFIG_DIR="$ee_cfg" claude plugin details aiskills@aiskills 2>&1)"
-    # inventory by NAME, not by count — `claude plugin details` lumps commands
-    # into the Skills line, so the raw number moves when a command is added.
+    # `claude plugin details` lumps commands into the Skills line. Two independent
+    # checks: (a) every expected name is present (catches a rename), and (b) the
+    # count equals the FIXED expected total (catches a deletion — a name-only
+    # loop over existing dirs can't, because both sides shrink together).
+    ee_expected_skills=16          # the 16 aiskills-* skills — bump deliberately when adding one
+    ee_expected_cmds="$(ls commands/*.md 2>/dev/null | wc -l | tr -d ' ')"
+    ee_total=$((ee_expected_skills + ee_expected_cmds))
+    echo "$ee_det" | grep -q "Skills ($ee_total)" \
+      && say_pass "plugin e2e: details reports Skills ($ee_total) = $ee_expected_skills skills + $ee_expected_cmds command(s)" \
+      || say_fail "plugin e2e: details did NOT report Skills ($ee_total) — got: $(echo "$ee_det" | grep -i 'skills (' || true)"
     ee_missing=""
     for _s in $(ls -d skills/aiskills-*/ | xargs -n1 basename); do
       echo "$ee_det" | grep -q "$_s" || ee_missing="$ee_missing $_s"
     done
     echo "$ee_det" | grep -q '\bloop\b' || ee_missing="$ee_missing loop(command)"
-    [ -z "$ee_missing" ] && say_pass "plugin e2e: details lists all 16 aiskills-* skills + the loop command" \
+    [ -z "$ee_missing" ] && say_pass "plugin e2e: details lists every aiskills-* skill + the loop command by name" \
                          || say_fail "plugin e2e: details is missing:$ee_missing — got: $(echo "$ee_det" | grep -i 'skills (' || true)"
     ee_amissing=""
     for _a in $(ls agents/aiskills-*.md | xargs -n1 basename | sed 's/\.md$//'); do

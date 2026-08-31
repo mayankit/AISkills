@@ -96,13 +96,14 @@ seed_md 'plugin e2e: plugin.json version and marketplace' .claude-plugin/plugin.
 echo
 echo "== section 13b: live plugin install + inspect =="
 if [ "$have_claude" -eq 1 ]; then
-  # remove one skill dir -> details inventory should be missing that name
+  # remove one skill dir -> details skill COUNT no longer matches the fixed total
+  # (a name-only check over surviving dirs can't catch a deletion)
   cp -R skills/aiskills-observability "$SCRATCH/.__skill_bak"
   rm -rf skills/aiskills-observability
   out="$(run_check)"
-  if check_has_fail 'plugin e2e: details is missing.*aiskills-observability' "$out"; then
-    ok 'plugin e2e: a removed skill is detected (name-based inventory check)'
-  else bad 'plugin e2e: skill inventory check' 'the details name check'; fi
+  if check_has_fail 'plugin e2e: details did NOT report Skills' "$out"; then
+    ok 'plugin e2e: a removed skill is detected (fixed-total count check)'
+  else bad 'plugin e2e: skill inventory count check' 'the fixed-total assertion'; fi
   mv "$SCRATCH/.__skill_bak" skills/aiskills-observability
 
   # remove one agent -> details agents inventory should be off
