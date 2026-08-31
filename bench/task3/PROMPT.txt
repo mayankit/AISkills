@@ -1,0 +1,8 @@
+Add `invalidate(key)` to cache.py.
+
+It must remove `key` from BOTH the read-through cache and the underlying store,
+so that a `read(key)` afterwards raises `store.KeyMissing` (nothing cached,
+nothing stored). Keys may be given in any case.
+
+Keep the existing test suite green. This is a real change across two modules —
+do it properly, end to end, and verify it before you call it done.

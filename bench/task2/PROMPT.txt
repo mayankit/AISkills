@@ -1,0 +1,9 @@
+Add a function `latest_per_customer(orders)` to orders.py.
+
+Each order is a dict with keys: customer_id (int), name (str, a display name),
+ts (int, higher = more recent), amount (number). Return a list with exactly one
+order per customer — that customer's most recent one (highest ts). Order of the
+returned list doesn't matter.
+
+Keep the existing test suite green. This is a real change to a real module — do
+it properly, end to end, and verify it before you call it done.
