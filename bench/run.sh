@@ -21,8 +21,10 @@ set -uo pipefail
 
 N="${1:-5}"; shift || true
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-TASKS=("$@"); [ ${#TASKS[@]} -eq 0 ] && TASKS=("$REPO/bench/task" "$REPO/bench/task2")
-OUT="$REPO/bench/runs/$(date -u +%Y%m%dT%H%M%SZ)"
+TASKS=("$@"); [ ${#TASKS[@]} -eq 0 ] && TASKS=("$REPO/bench/task" "$REPO/bench/task2" "$REPO/bench/task3")
+# RESUME=<dir> continues a run that aborted (skips runs that already have a
+# non-error score); otherwise a fresh timestamped dir.
+OUT="${RESUME:-$REPO/bench/runs/$(date -u +%Y%m%dT%H%M%SZ)}"
 mkdir -p "$OUT"
 command -v claude  >/dev/null || { echo "no 'claude' CLI on PATH" >&2; exit 1; }
 command -v python3 >/dev/null || { echo "no python3" >&2; exit 1; }
@@ -40,8 +42,12 @@ STYLE_BODY="$(awk '/^-->$/{c=1;next} c' "$REPO/output-styles/loops-within-loops.
 
 run_one() {  # run_one <taskdir> <taskname> <arm> <i>
   local tdir="$1" tname="$2" arm="$3" i="$4" work dst s c
+  dst="$OUT/$tname/$arm/$i"
+  if [ -f "$dst/score.tsv" ] && ! grep -q '"is_error": *true' "$dst/meta.json" 2>/dev/null; then
+    echo "  [$tname/$arm #$i] already done — skip"; return 0
+  fi
   work="$(mktemp -d)"; cp "$tdir"/*.py "$work"/
-  dst="$OUT/$tname/$arm/$i"; mkdir -p "$dst"
+  mkdir -p "$dst"
   cp "$tdir/EXPECTED.sh" "$dst/EXPECTED.sh"
 
   local -a extra=()
