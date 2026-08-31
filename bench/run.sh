@@ -60,10 +60,11 @@ run_one() {  # run_one <taskdir> <taskname> <arm> <i>
         ${extra[@]+"${extra[@]}"} </dev/null \
   ) > "$dst/stream.jsonl" 2> "$dst/stderr.txt" || true
 
-  # abort the whole run if the account hit its usage limit — otherwise every
-  # remaining run records a bogus 0-token error row.
-  if grep -q '"rateLimitType"\|hit your monthly spend limit\|"error":"rate_limit"' "$dst/stream.jsonl"; then
-    echo "  !! rate limit hit — aborting the run. Re-run after it resets." | tee -a "$OUT/WARNINGS.txt"
+  # abort the whole run ONLY if the account was actually REJECTED — otherwise
+  # every remaining run records a bogus 0-token error row. (A healthy
+  # rate_limit_event with "status":"allowed" is informational; do not abort on it.)
+  if grep -Eq '"status": *"rejected"|hit your (monthly spend|usage) limit|"error": *"rate_limit"' "$dst/stream.jsonl"; then
+    echo "  !! usage limit REJECTED — aborting. Continue later: RESUME=$OUT bash bench/run.sh $N" | tee -a "$OUT/WARNINGS.txt"
     rm -rf "$work"; return 3
   fi
 
