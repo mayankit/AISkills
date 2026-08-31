@@ -296,10 +296,54 @@ bash tests/seed-defect-proof.sh   # proves the checks above actually FAIL when a
 
 Exit 0 on all = every check passed. `tests/check.sh` also runs `claude plugin validate
 --strict` on both manifests **and a real `claude plugin install` into a throwaway config dir**
-(asserting Skills = 16, Agents = 4, Hooks = 0, and `force-for-plugin: true` on the shipped
-output style) when the `claude` CLI is on `PATH` — and skips those cleanly when it isn't.
-Everything runs against a temp directory; nothing touches your real `~/.claude`. Run all three
-after editing anything in this package — they are this repo's CI gate.
+(asserting all 16 skills + the `loop` command by name, Agents = 4, Hooks = 0, and
+`force-for-plugin: true` on the shipped output style) when the `claude` CLI is on `PATH` — and
+skips those cleanly when it isn't. Everything runs against a temp directory; nothing touches
+your real `~/.claude`. Run all three after editing anything in this package — they are this
+repo's CI gate.
+
+## Using it — day to day
+
+Once the plugin is enabled (or the brain is mounted on your host), **there is nothing to
+invoke** — start a new session and work normally. Every non-trivial task automatically gets the
+discipline: a `◇ PLAN` tree before the first tool call, `◆` status lines per loop, a failing
+test written first on a build task, the real gate run before "done", and a ledger at
+`<first-non-repo-parent>/.agentic-loops/loop-ledger.md`. See
+[What "it's working" looks like](#what-its-working-looks-like-any-host).
+
+**Force it on one task.** When you want the structure guaranteed rather than trusted to the
+always-on style:
+
+```
+/aiskills:loop  add cursor-based pagination to /users, test-first
+```
+
+`/aiskills:loop <task>` (a command shipped by the plugin) bootstraps the ledger, emits the plan
+tree, loads the grammar + build spine, and runs closed loops to a verified done.
+
+**Steer a skill** when you want a specific lens — just ask:
+
+```
+run a security-review pass on this diff
+use aiskills-debugging-recovery — this test passes alone but fails in the suite
+do a doubt pass on the migration before we run it
+```
+
+**Delegate to a role agent** by name:
+
+| Say | Gets you |
+|---|---|
+| "have **aiskills-architect** shape this first, then hand off" | pattern choice + API contract + an ADR, no implementation |
+| "use **aiskills-code-reviewer** on this PR" | read-only review, severity-tagged, writes no code |
+| "**aiskills-incident-investigator** — prod is throwing 500s" | mitigate-first, hypothesis-driven root cause + a guard |
+
+**Turn it off** for a session: `/config` → Output style → **Default** (plain Claude Code), or
+`/plugin disable aiskills@aiskills` to remove it entirely. Re-enable and it applies again next
+session.
+
+**It's proportional.** A genuinely trivial one-step task skips the plan tree and ledger; a
+small change gets a one-line plan and a two-iteration loop. What never scales down: a real
+failing test first, and the real verify command at the end.
 
 ## Layout
 
@@ -343,18 +387,28 @@ bench/
 ## Benchmark — with vs without
 
 `bench/` is a reproducible A/B: the same coding task given to headless `claude`
-twice, plugin enabled vs disabled, scored on 11 objective criteria (outcome +
-whether it worked test-first, ran the real gate, and left a ledger).
+twice — plugin enabled + discipline in the system prompt vs nothing — scored on
+objective criteria (outcome checks per task + whether it worked test-first, ran
+the real gate, and left an incremental ledger).
 
 ```bash
-bash bench/run.sh 5      # 5 runs per arm; needs an authed claude CLI; ~$2-6
+bash bench/run.sh 5                          # 5 runs/arm across bench/task*/
+RESUME=bench/runs/<ts> bash bench/run.sh 5   # continue a run that hit a usage limit
 ```
 
-Checked-in numbers and the run log are in [`bench/RESULTS.md`](bench/RESULTS.md);
-[`bench/README.md`](bench/README.md) has the method and the caveats (small N, one
-task, headless ≠ interactive). Consistent with the article's own comparison, the
-`skills` arm costs more and takes longer, and picks up the diligence the baseline
-skips.
+Latest run (`claude-sonnet-5`, N=3, two tasks — [`bench/RESULTS.md`](bench/RESULTS.md)):
+
+| task | baseline | skills |
+|---|---|---|
+| pricing (`task/`) | 5.7 / 11 | **11 / 11** ×3 |
+| dedup (`task2/`) | 6.0 / 11 | **11 / 11** ×2 |
+
+The `skills` arm went perfect on every completed run; `baseline` stalled at
+5–6/11 — its code was correct every time, but it never wrote a test for the new
+behaviour first and left no trail. Cost: `skills` ≈ 2.5–3×. Honest caveats in
+[`bench/README.md`](bench/README.md): small N, one model, headless ≠ interactive,
+and the harness only covers small self-contained tasks — the larger payoff on
+big / legacy / multi-file repos is not something it can measure.
 
 ## Extending
 
